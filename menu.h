@@ -34,6 +34,7 @@ typedef enum {
 	menu_num = 0x01,
 	menu_tf = 0x02,
 	menu_list = 0x04,
+	menu_time = 0x08,
 	menu_hasSub = 0x10,
 	menu_isSub = 0x20,
 	menu_disabled = 0x80,
@@ -69,6 +70,9 @@ typedef enum {
 
 typedef enum {
 	MENU_24H = 0,
+	MENU_ALARM,
+	MENU_ALARMHOUR,
+	MENU_ALARMMINUTE,
 	MENU_AUTODATE,
 	MENU_AUTODATE_ENABLE,
 	MENU_AUTODIM,
@@ -105,12 +109,17 @@ typedef enum {
 	MENU_RULE7,
 	MENU_RULE8,
 	MENU_TEMP,
+	MENU_TIME,
+	MENU_TIMEHOUR,
+	MENU_TIMEMINUTE,
 	MENU_VOL,
 	MENU_END  // must be last
 } menu_number;
 
 menu_state_t menu_state;
 //uint8_t menuDisabled[MENU_COUNT];
+int time_time;
+int time_alarm;
 
 #if defined FEATURE_WmGPS || defined FEATURE_AUTO_DST
 void setDSToffset(uint8_t mode);

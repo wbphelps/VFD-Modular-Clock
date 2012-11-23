@@ -38,7 +38,9 @@ const FLASH menu_value menu_volume[2] = { {0, "  lo"}, {1, "  hi"} };
 const FLASH menu_value menu_region[3] = { {0, " dmy"}, {1, " mdy"}, {2, " ymd"} };
 
 menu_item menu24h = {MENU_24H,menu_tf,"24H","24H",&g_24h_clock,&b_24h_clock,0,2,{menu_offon}};
-menu_item menuBrt = {MENU_BRIGHTNESS,menu_num,"BRIT","BRITE",&g_brightness,&b_brightness,0,10,{NULL}};
+#ifdef FEATURE_MENU_TIME
+menu_item menuAlarm = {MENU_ALARM,menu_time,"ALRM","ALARM",NULL,NULL,0,0,{NULL}};
+#endif
 #ifdef FEATURE_AUTO_DATE
 menu_item menuAdate_ = {MENU_AUTODATE,menu_hasSub,"ADT","ADATE",NULL,NULL,0,0,{NULL}};
 menu_item menuAdate = {MENU_AUTODATE,menu_tf+menu_isSub,"ADTE","ADATE",&g_AutoDate,&b_AutoDate,0,2,{menu_offon}};
@@ -52,6 +54,7 @@ menu_item menuAdimLvl = {MENU_AUTODIM_LEVEL,menu_num+menu_isSub,"ADML","ADML",&g
 menu_item menuAbrtHr = {MENU_AUTOBRT_HOUR,menu_num+menu_isSub,"ABTH","ABTH",&g_AutoBrtHour,&b_AutoBrtHour,0,23,{NULL}};
 menu_item menuAbrtLvl = {MENU_AUTOBRT_LEVEL,menu_num+menu_isSub,"ABTL","ABTL",&g_AutoBrtLevel,&b_AutoBrtLevel,1,10,{NULL}};
 #endif
+menu_item menuBrt = {MENU_BRIGHTNESS,menu_num,"BRIT","BRITE",&g_brightness,&b_brightness,0,10,{NULL}};
 #ifdef FEATURE_SET_DATE						
 menu_item menuDate_ = {MENU_DATE,menu_hasSub,"DAT","DATE ",NULL,NULL,0,0,{NULL}};
 menu_item menuYear = {MENU_DATEYEAR,menu_num+menu_isSub,"YEAR","YEAR",&g_dateyear,NULL,10,29,{NULL}};
@@ -91,11 +94,17 @@ menu_item menuGPSc = {MENU_GPSC,menu_num+menu_isSub,"GPSC","GPSC",&g_gps_cks_err
 menu_item menuGPSp = {MENU_GPSP,menu_num+menu_isSub,"GPSP","GPSP",&g_gps_parse_errors,NULL,0,0,{NULL}};
 menu_item menuGPSt = {MENU_GPST,menu_num+menu_isSub,"GPST","GPST",&g_gps_time_errors,NULL,0,0,{NULL}};
 #endif
+#ifdef FEATURE_MENU_TIME
+menu_item menuTime = {MENU_TIME,menu_time,"TIME","TIME ",NULL,NULL,0,0,{NULL}};
+#endif
 menu_item menuTemp = {MENU_TEMP,menu_tf+menu_disabled,"TEMP","TEMP",&g_show_temp,&b_show_temp,0,2,{menu_offon}};
 menu_item menuVol = {MENU_VOL,menu_list,"VOL","VOL",&g_volume,&b_volume,0,2,{menu_volume}};
 
 const menu_item* PROGMEM const menuItems[] = { 
 	&menu24h, 
+#ifdef FEATURE_MENU_TIME
+	&menuAlarm,
+#endif
 #ifdef FEATURE_AUTO_DATE
 	&menuAdate_, &menuAdate, &menuRegion,
 #endif
@@ -126,6 +135,9 @@ const menu_item* PROGMEM const menuItems[] = {
 	&menuGPSc, &menuGPSp, &menuGPSt,
 #endif
 	&menuTemp,
+#ifdef FEATURE_MENU_TIME
+	&menuTime,
+#endif
 	&menuVol,
 	NULL};  // end of list marker must be here
 
@@ -178,6 +190,8 @@ void set_date(uint8_t yy, uint8_t mm, uint8_t dd) {
 void menu_action(menu_item * menuPtr)
 {
 	switch(menuPtr->menuNum) {
+		case MENU_ALARM:
+			break;
 		case MENU_BRIGHTNESS:
 			set_brightness(*menuPtr->setting);
 			break;
@@ -206,6 +220,8 @@ void menu_action(menu_item * menuPtr)
 			g_DST_updated = false;  // allow automatic DST adjustment again
 			DSTinit(tm_, g_DST_Rules);  // re-compute DST start, end for new data
 			setDSToffset(g_DST_mode);
+			break;
+		case MENU_TIME:
 			break;
 		case MENU_TZH:
 		case MENU_TZM:
@@ -371,6 +387,22 @@ void menu(uint8_t btn)
 			else
 				show = true;
 		}
+#ifdef FEATURE_MENU_TIME
+// time menu item
+		else if (menuPtr->flags & menu_time) {
+			if (menuPtr->menuNum == MENU_ALARM) {
+				rtc_get_alarm_s(&alarm_hour, &alarm_min, &alarm_sec);
+				time_to_set = alarm_hour*60 + alarm_min;
+				menu_state = STATE_SET_ALARM;
+			}
+			if (menuPtr->menuNum == MENU_TIME) {
+				rtc_get_time_s(&hour, &min, &sec);
+				time_to_set = hour*60 + min;
+				menu_state = STATE_SET_CLOCK;
+			}
+			show_time_setting(time_to_set / 60, time_to_set % 60, 0);
+		}
+#endif
 // top of sub menu item
 		else if (menuPtr->flags & menu_hasSub) {
 			valstr = "";

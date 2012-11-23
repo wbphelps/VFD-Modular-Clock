@@ -79,6 +79,9 @@ int8_t g_dateyear;
 int8_t g_datemonth;
 int8_t g_dateday;
 #endif
+uint8_t alarm_hour, alarm_min, alarm_sec;
+uint8_t hour, min, sec;
+int16_t time_to_set;
 #ifdef FEATURE_FLW
 int8_t g_flw_enabled;
 #endif

@@ -72,9 +72,8 @@
  *  minor typos & cleanup
  */
 
-//#define FEATURE_AUTO_MENU  // temp
+#define FEATURE_MENU_TIME  // add alarm & time to menu
 #define FEATURE_GPS_DEBUG  // enables GPS debugging counters & menu items
-//#define FEATURE_AUTO_DIM  // moved to Makefile
  
 #include <avr/io.h>
 #include <avr/interrupt.h>
@@ -149,7 +148,7 @@ uint8_t g_alarm_switch;
 uint16_t g_show_special_cnt = 0;  // display something special ("time", "alarm", etc)
 //time_t g_tNow = 0;  // current local date and time as time_t, with DST offset
 tmElements_t* tm_; // current local date and time as TimeElements (pointer)
-uint8_t alarm_hour = 0, alarm_min = 0, alarm_sec = 0;
+//uint8_t alarm_hour = 0, alarm_min = 0, alarm_sec = 0;
 
 extern enum shield_t shield;
 
@@ -353,10 +352,10 @@ void main(void)
 	}
 	*/
 	
-	uint8_t hour = 0, min = 0, sec = 0;
+//	uint8_t hour = 0, min = 0, sec = 0;
 
 	// Counters used when setting time
-	int16_t time_to_set = 0;
+//	int16_t time_to_set = 0;
 	uint16_t button_released_timer = 0;
 #ifdef FEATURE_AUTO_MENU
   uint16_t button2_release_timer = 0;
