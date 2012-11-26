@@ -17,7 +17,10 @@
 *todo:
  * ?
  *
- * 25nov12 add alarm & time to menu, fix time/alarm repeat speed
+ * 25nov12 add alarm & time to menu
+ * 25nov12 fix time/alarm set repeat interval
+ *  put menu_values in PROGMEM
+ *  remove FEATURE_AUTO_MENU
  * 21nov12 reduce RAM usage, in general and for avr-gcc 4.7.2
  * 19nov12 redo main loop timing now that GPS read is interrupt driven
  * 18nov12 move FEATURE_ADIM to Makefile, cleanup FEATURE ifdefs
@@ -74,9 +77,6 @@
  *  minor typos & cleanup
  */
 
-//#define FEATURE_MENU_TIME  // add alarm & time to menu
-//#define FEATURE_GPS_DEBUG  // enables GPS debugging counters & menu items
- 
 #include <avr/io.h>
 #include <avr/interrupt.h>
 #include <util/delay.h>
@@ -355,7 +355,7 @@ void main(void)
 
 	// Counters used when setting time
 	uint16_t button_released_timer = 0;
-	uint16_t button_speed = 10;
+	uint16_t button_speed = 2;
 	
 	switch (shield) {
 		case(SHIELD_IV6):
@@ -514,7 +514,6 @@ void main(void)
 			}  // if (buttons.b1_keyup) 
 
 			if (buttons.b2_keyup) {  // left button
-				
 				menu(2);  // left button
 				buttons.b2_keyup = 0; // clear state
 			}
