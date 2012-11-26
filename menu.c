@@ -13,9 +13,6 @@
  *
  */
 
-//#define FEATURE_AUTO_MENU  // temp
-//#define FEATURE_GPS_DEBUG  // enables GPS debugging counters & menu items
-
 #include <util/delay.h>
 #include <avr/eeprom.h>
 #include <avr/pgmspace.h>
@@ -190,6 +187,7 @@ void menu_action(menu_item * menuPtr)
 {
 	switch(menuPtr->menuNum) {
 		case MENU_ALARM:
+			menu_state = STATE_SET_ALARM;
 			break;
 		case MENU_BRIGHTNESS:
 			set_brightness(*menuPtr->setting);
@@ -221,6 +219,7 @@ void menu_action(menu_item * menuPtr)
 			setDSToffset(g_DST_mode);
 			break;
 		case MENU_TIME:
+			menu_state = STATE_SET_CLOCK;
 			break;
 		case MENU_TZH:
 		case MENU_TZM:
@@ -289,19 +288,6 @@ void menu(uint8_t btn)
 			update = false;
 			show = false;
 			break;
-#ifdef FEATURE_AUTO_MENU
-		case 3:  // auto menu timeout
-			if (digits == 4)  return;  // too confusing in IV-17?
-			if (menuPtr->flags & menu_hasSub) {
-				return;  // just show the item as before
-			}
-			else {
-				show = true;  // show value
-				if (digits>6)
-					update = true;
-			}
-			break;
-#endif
 	}
 	if (menuPtr == NULL) {  // check for end of menu
 		menuIdx = 0;
@@ -396,13 +382,13 @@ void menu(uint8_t btn)
 					rtc_get_alarm_s(&alarm_hour, &alarm_min, &alarm_sec);
 					time_to_set = alarm_hour*60 + alarm_min;
 					if (update)
-						menu_state = STATE_SET_ALARM;
+						menu_action(menuPtr);
 				}
 				if (menuPtr->menuNum == MENU_TIME) {
 					rtc_get_time_s(&hour, &min, &sec);
 					time_to_set = hour*60 + min;
 					if (update)
-						menu_state = STATE_SET_CLOCK;
+						menu_action(menuPtr);
 				}
 				show_time_setting(time_to_set / 60, time_to_set % 60, 0);
 				update = true;
