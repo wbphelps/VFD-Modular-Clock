@@ -16,6 +16,9 @@
  #ifndef GLOBALS_H_
 #define GLOBALS_H_
 
+#define FEATURE_MENU_TIME  // add alarm & time to menu
+#define FEATURE_GPS_DEBUG  // enables GPS debugging counters & menu items
+
 #ifdef __FLASH
 #define FLASH __flash
 #else

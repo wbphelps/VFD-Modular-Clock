@@ -14,8 +14,7 @@
  */
 
 //#define FEATURE_AUTO_MENU  // temp
-#define FEATURE_GPS_DEBUG  // enables GPS debugging counters & menu items
-//#define FEATURE_AUTO_DIM  // moved to Makefile
+//#define FEATURE_GPS_DEBUG  // enables GPS debugging counters & menu items
 
 #include <util/delay.h>
 #include <avr/eeprom.h>
@@ -281,8 +280,8 @@ void menu(uint8_t btn)
 			}
 			else {
 				show = true;  // show value
-				if (digits>6)
-					update = true;
+				if ((digits>6) && !(menuPtr->flags & menu_time))
+					update = true;  // name and value both fit
 			}
 			break;
 		case 2:  // left button - show next menu item
@@ -392,35 +391,45 @@ void menu(uint8_t btn)
 #ifdef FEATURE_MENU_TIME
 // time menu item
 		else if (menuPtr->flags & menu_time) {
-			if (menuPtr->menuNum == MENU_ALARM) {
-				rtc_get_alarm_s(&alarm_hour, &alarm_min, &alarm_sec);
-				time_to_set = alarm_hour*60 + alarm_min;
-				menu_state = STATE_SET_ALARM;
+			if (show) {
+				if (menuPtr->menuNum == MENU_ALARM) {
+					rtc_get_alarm_s(&alarm_hour, &alarm_min, &alarm_sec);
+					time_to_set = alarm_hour*60 + alarm_min;
+					if (update)
+						menu_state = STATE_SET_ALARM;
+				}
+				if (menuPtr->menuNum == MENU_TIME) {
+					rtc_get_time_s(&hour, &min, &sec);
+					time_to_set = hour*60 + min;
+					if (update)
+						menu_state = STATE_SET_CLOCK;
+				}
+				show_time_setting(time_to_set / 60, time_to_set % 60, 0);
+				update = true;
 			}
-			if (menuPtr->menuNum == MENU_TIME) {
-				rtc_get_time_s(&hour, &min, &sec);
-				time_to_set = hour*60 + min;
-				menu_state = STATE_SET_CLOCK;
-			}
-			show_time_setting(time_to_set / 60, time_to_set % 60, 0);
+			else {
+				show_setting_string(shortName, longName, valStr, false);
+			}	
 		}
 #endif
 // top of sub menu item
 		else if (menuPtr->flags & menu_hasSub) {
-			switch (digits) {
-				case 4:
-					strcat(shortName, "=");  // indicate top of sub
-					show_setting_string(shortName, longName, valStr, false);
-					break;
-				case 6:
-					strcat(longName, "-");  // indicate top of sub
-					show_setting_string(shortName, longName, valStr, false);
-					break;
-				case 8:  // use longName instead of shortName for top menu item
-					strcat(longName, " -");
-					show_setting_string(longName, longName, valStr, false);
-					break;
-			}
+			// switch (digits) {
+				// case 4:
+					// strcat(shortName, "=");  // indicate top of sub
+					// show_setting_string(shortName, longName, valStr, false);
+					// break;
+				// case 6:
+					// strcat(longName, "-");  // indicate top of sub
+					// show_setting_string(shortName, longName, valStr, false);
+					// break;
+				// case 8:  // use longName instead of shortName for top menu item
+					// strcat(longName, " -");
+					// show_setting_string(longName, longName, valStr, false);
+					// break;
+			// }
+			strcat(longName, "-");  // indicate top of sub
+			show_setting_string(shortName, longName, valStr, false);
 		}
 }  // menu
 

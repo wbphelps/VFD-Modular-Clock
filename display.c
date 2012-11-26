@@ -684,8 +684,13 @@ void show_setting_string(char* short_str, char* long_str, char* value, bool show
 {
 	data[0] = data[1] = data[2] = data[3] = data[4] = data[5] = data[6] = data[7] = ' ';
 	if (get_digits() == 8) {
-		set_string(short_str);
-		print_strn(value, 4, 4);
+		if (strlen(value) > 0) {
+			set_string(short_str);
+			print_strn(value, 4, 4);
+		}
+		else {
+			set_string(long_str);
+		}
 	}
 	else if (get_digits() == 6) {
 		if (show_setting)
