@@ -30,7 +30,7 @@ typedef enum {
 	menu_time = 0x08,
 	menu_hasSub = 0x10,
 	menu_isSub = 0x20,
-	menu_disabled = 0x80,
+//	menu_disabled = 0x80,
 } menu_flags;
 
 typedef struct {
@@ -50,6 +50,18 @@ typedef struct {
 	const menu_value* menuList[];  // list of menu choices
 } menu_item;
 
+typedef struct {
+	uint8_t menuNum;  // menu item number
+	menu_flags flags;  // flags
+	char shortName[4];
+	char longName[5];
+	int8_t* setting;
+	uint8_t* eeAddress;
+	int8_t loLimit;  // low limit for num
+	int8_t hiLimit;  // high limit for num, # of values for list
+	menu_value* menuList[];  // list of menu choices
+} menu_item_rw;
+
 // menu states
 typedef enum {
 	// basic states
@@ -61,7 +73,7 @@ typedef enum {
 	STATE_MENU_LAST,
 } menu_state_t;
 
-typedef enum {
+typedef enum {  // no ifdefs, no harm in defining unused items
 	MENU_24H = 0,
 	MENU_ALARM,
 	MENU_ALARMHOUR,

@@ -17,6 +17,7 @@
 *todo:
  * ?
  *
+ * 26nov12 put menu_items in PROGMEM!
  * 25nov12 add alarm & time to menu
  * 25nov12 fix time/alarm set repeat interval
  *  put menu_values in PROGMEM
@@ -197,6 +198,7 @@ void initialize(void)
 	
 #ifdef FEATURE_FLW
 	g_has_eeprom = has_eeprom();
+//	if (!g_has_eeprom)  beep(440,2);  // debug
 	if (!g_has_eeprom)
 		g_flw_enabled = false;
 	if (tm_ && g_has_eeprom)
@@ -382,7 +384,7 @@ void main(void)
 	_delay_ms(500);
 	//set_string("--------");
 
-	while (1) {  // <<< ===================== MAIN LOOP ===================== >>>
+	while (1) {  // << ===================== MAIN LOOP ===================== >>
 		get_button_state(&buttons);
 		// When alarming:
 		// any button press cancels alarm
