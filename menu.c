@@ -423,22 +423,20 @@ void menu(uint8_t btn)
 #endif
 // top of sub menu item
 		else if (menuPtr->flags & menu_hasSub) {
-			// switch (digits) {
-				// case 4:
-					// strcat(shortName, "=");  // indicate top of sub
-					// show_setting_string(shortName, longName, valStr, false);
-					// break;
-				// case 6:
-					// strcat(longName, "-");  // indicate top of sub
-					// show_setting_string(shortName, longName, valStr, false);
-					// break;
-				// case 8:  // use longName instead of shortName for top menu item
-					// strcat(longName, " -");
-					// show_setting_string(longName, longName, valStr, false);
-					// break;
-			// }
-			strcat(longName, "-");  // indicate top of sub
-			show_setting_string(shortName, longName, valStr, false);
+			switch (digits) {
+				case 4:
+					strcat(shortName, "*");  // indicate top of sub
+					show_setting_string(shortName, longName, valStr, false);
+					break;
+				case 6:
+					strcat(longName, "-");  // indicate top of sub
+					show_setting_string(shortName, longName, valStr, false);
+					break;
+				case 8:
+					strcat(longName, " -");
+					show_setting_string(shortName, longName, valStr, false);
+					break;
+			}
 		}
 }  // menu
 
