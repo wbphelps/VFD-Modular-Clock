@@ -17,6 +17,7 @@
 *todo:
  * ?
  *
+ * 30nov12 fix DST Rule0 limits (again)
  * 25nov12 fix time/alarm set repeat interval
  *  put menu_values in PROGMEM
  *  remove FEATURE_AUTO_MENU
