@@ -94,6 +94,8 @@ void show_alarm_time(uint8_t hour, uint8_t min, uint8_t sec);
 void show_alarm_off(void);
 
 void set_string(char* str);
+void set_scroll(char* str);
+void show_scroll(uint8_t index);
 void set_char_at(char c, uint8_t offset);
 
 void set_brightness(uint8_t brightness);

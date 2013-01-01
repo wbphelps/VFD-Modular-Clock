@@ -51,6 +51,8 @@ uint8_t multiplex_counter = 0;
 #ifdef FEATURE_WmGPS
 uint8_t gps_counter = 0;
 #endif
+static char sData[32];  // scroll message - 25 chars plus 8 spaces
+const uint8_t scroll_len = 32;
 
 // globals from main.c
 extern uint8_t g_show_dots;
@@ -111,6 +113,20 @@ void detect_shield(void)
 		default:
 			shield = SHIELD_NONE;
 			break;
+	}
+}
+
+void clr_data(void)
+{
+	for (int i = 0; i<8; i++) {
+		data[i] = ' ';
+	}
+}
+
+void clr_sData(void)
+{
+	for (int i = 0; i<scroll_len; i++) {
+		sData[i] = ' ';
 	}
 }
 
@@ -603,7 +619,8 @@ void show_flw(tmElements_t* te)
 			print_offset = 0;
 		}
 		
-		data[0] = data[1] = data[2] = data[3] = data[4] = data[5] = data[6] = data[7] = ' ';
+//		data[0] = data[1] = data[2] = data[3] = data[4] = data[5] = data[6] = data[7] = ' ';
+		clr_data();
 		print_strn(g_flw, print_offset, 4);
 	}
 }
@@ -671,18 +688,30 @@ void set_string(char* str)
 {
 	if (!str) return;
 	dots = 0;
-	data[0] = data[1] = data[2] = data[3] = data[4] = data[5] = data[6] = data[7] = ' ';
-	
+//	data[0] = data[1] = data[2] = data[3] = data[4] = data[5] = data[6] = data[7] = ' ';
+	clr_data();
 	for (int i = 0; i <= digits-1; i++) {
 		if (!*str) break;
 		data[i] = *(str++);
 	}
 }
 
+void set_scroll(char* str)
+{
+	if (!str) return;
+	dots = 0;
+	clr_sData();
+	for (int i = 0; i <25; i++) {
+		if (!*str) break;
+		sData[i] = *(str++);
+	}
+}
+
 // shows setting string
 void show_setting_string(char* short_str, char* long_str, char* value, bool show_setting)
 {
-	data[0] = data[1] = data[2] = data[3] = data[4] = data[5] = data[6] = data[7] = ' ';
+//	data[0] = data[1] = data[2] = data[3] = data[4] = data[5] = data[6] = data[7] = ' ';
+	clr_data();
 	if (get_digits() == 8) {
 		if (strlen(value) > 0) {
 			set_string(short_str);
@@ -706,80 +735,84 @@ void show_setting_string(char* short_str, char* long_str, char* value, bool show
 	}
 }
 
+void show_scroll(uint8_t index)
+{
+	switch (digits) {
+	case 8:
+		for (uint8_t i = 0; i < 8; i++) {
+			data[i] = sData[(index+i)%scroll_len];
+		}
+		break;
+	case 6:
+		for (uint8_t i = 0; i < 6; i++) {
+			data[i] = sData[(index+i)%scroll_len];
+		}
+		break;
+	case 4:
+		for (uint8_t i = 0; i < 4; i++) {
+			data[i] = sData[(index+i)%scroll_len];
+		}
+		break;
+	}
+}
+
 #ifdef FEATURE_AUTO_DATE
 // scroll the date - called every 100 ms
-void show_date(tmElements_t *te_, uint8_t region, uint8_t scroll)
+void show_date(tmElements_t *te_, uint8_t region, uint8_t index)
 {
 	dots = 0;
 //	uint8_t di;
 	char sl;
-	char d[18];
-	d[0] = d[1] = ' ';
+//	char d[18];
+//	sData[0] = sData[1] = ' ';
+	clr_sData();
 	if (shield == SHIELD_IV17)
 		sl = '/';
 	else
 		sl = '-';
 	switch (region) {
 		case 0:  // DMY
-			d[2] = te_->Day / 10;
-			d[3] = te_->Day % 10;
-			d[4] = d[7] = sl;
-			d[5] = te_->Month / 10;
-			d[6] = te_->Month % 10;
-			d[8] = '2';
-			d[9] = '0';
-			d[10] = te_->Year / 10;
-			d[11] = te_->Year % 10;
+			sData[2] = te_->Day / 10;
+			sData[3] = te_->Day % 10;
+			sData[4] = sData[7] = sl;
+			sData[5] = te_->Month / 10;
+			sData[6] = te_->Month % 10;
+			sData[8] = '2';
+			sData[9] = '0';
+			sData[10] = te_->Year / 10;
+			sData[11] = te_->Year % 10;
 			break;
 		case 1:  // MDY
-			d[2] = te_->Month / 10;
-			d[3] = te_->Month % 10;
-			d[4] = d[7] = sl;
-			d[5] = te_->Day / 10;
-			d[6] = te_->Day % 10;
-			d[8] = '2';
-			d[9] = '0';
-			d[10] = te_->Year / 10;
-			d[11] = te_->Year % 10;
+			sData[2] = te_->Month / 10;
+			sData[3] = te_->Month % 10;
+			sData[4] = sData[7] = sl;
+			sData[5] = te_->Day / 10;
+			sData[6] = te_->Day % 10;
+			sData[8] = '2';
+			sData[9] = '0';
+			sData[10] = te_->Year / 10;
+			sData[11] = te_->Year % 10;
 			break;
 		case 2:  // YMD
-			d[2] = '2';
-			d[3] = '0';
-			d[4] = te_->Year / 10;
-			d[5] = te_->Year % 10;
-			d[6] = d[9] = sl;
-			d[7] = te_->Month / 10;
-			d[8] = te_->Month % 10;
-			d[10] = te_->Day / 10;
-			d[11] = te_->Day % 10;
+			sData[2] = '2';
+			sData[3] = '0';
+			sData[4] = te_->Year / 10;
+			sData[5] = te_->Year % 10;
+			sData[6] = sData[9] = sl;
+			sData[7] = te_->Month / 10;
+			sData[8] = te_->Month % 10;
+			sData[10] = te_->Day / 10;
+			sData[11] = te_->Day % 10;
 			break;
 		}
-	d[12] = d[13] = ' ';
-	d[14] = d[15] = d[16] = d[17] = ' ';
-//	di = (scroll_ctr++) * 10 / 38;
-	switch (digits) {
-	case 8:
-		for (uint8_t i = 0; i < 8; i++) {
-			data[i] = d[(scroll+i)%18];
-		}
-		break;
-	case 6:
-		for (uint8_t i = 0; i < 6; i++) {
-			data[i] = d[(scroll+i)%16];
-		}
-		break;
-	case 4:
-		for (uint8_t i = 0; i < 4; i++) {
-			data[i] = d[(scroll+i)%14];
-		}
-		break;
-	}
+	show_scroll(index);
 }
 #endif
 
 void show_setting_int(char* short_str, char* long_str, int value, bool show_setting)
 {
-	data[0] = data[1] = data[2] = data[3] = data[4] = data[5] = data[6] = data[7] = ' ';
+//	data[0] = data[1] = data[2] = data[3] = data[4] = data[5] = data[6] = data[7] = ' ';
+	clr_data();
 	if (get_digits() == 8) {
 		set_string(long_str);
 		print_digits(value, 6);
@@ -801,7 +834,8 @@ void show_setting_int(char* short_str, char* long_str, int value, bool show_sett
 #ifdef skip1
 void show_setting_int4(char* short_str, char* long_str, int value, bool show_setting)
 {
-	data[0] = data[1] = data[2] = data[3] = data[4] = data[5] = data[6] = data[7] = ' ';
+//	data[0] = data[1] = data[2] = data[3] = data[4] = data[5] = data[6] = data[7] = ' ';
+	clr_data();
 
 	if (get_digits() == 8) {
 		set_string(long_str);

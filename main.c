@@ -260,12 +260,27 @@ ISR( PCINT2_vect )
 }
 
 uint8_t scroll_ctr;
+
+void show_BDmsg(void)
+{
+	set_scroll("Happy Birthday Jeff");
+	for (scroll_ctr = 0; scroll_ctr<20; scroll_ctr++) {
+		show_scroll(scroll_ctr);
+		_delay_ms(200);
+	}
+}
+
 void display_time(display_mode_t mode)  // (wm)  runs approx every 100 ms
 {
 	static uint16_t counter = 0;
 #ifdef FEATURE_AUTO_DATE
 	if (mode == MODE_DATE) {
-		show_date(tm_, g_Region, (scroll_ctr++) * 10 / 38);  // show date from last rtc_get_time() call
+		if ((tm_->Month == 12) && (tm_->Day == 29)) {
+			set_scroll("Happy Birthday Jeff");
+			show_scroll(scroll_ctr++*10/24);  // show BD message
+			}
+		else
+			show_date(tm_, g_Region, (scroll_ctr++) * 10 / 38);  // show date from last rtc_get_time() call
 	}
 	else
 #endif	
@@ -384,7 +399,8 @@ void main(void)
 
 	_delay_ms(500);
 	//set_string("--------");
-
+	show_BDmsg();
+	
 	while (1) {  // << ===================== MAIN LOOP ===================== >>
 		get_button_state(&buttons);
 		// When alarming:
