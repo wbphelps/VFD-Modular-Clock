@@ -18,6 +18,7 @@
 
 #define FEATURE_MENU_TIME  // add alarm & time to menu
 #define FEATURE_GPS_DEBUG  // enables GPS debugging counters & menu items
+#define FEATURE_MESSAGES  // holiday messages
 
 #ifdef __FLASH
 #define FLASH __flash
