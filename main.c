@@ -266,6 +266,8 @@ void display_time(display_mode_t mode)  // (wm)  runs approx every 100 ms
 {
 	static uint16_t counter = 0;
 #ifdef FEATURE_AUTO_DATE
+// display the date (or other message) once a minute just before the minute changes
+// the timing is tuned such that the clock shows the time again at 59 1/2 seconds
 	if (mode == MODE_DATE) {
 #ifdef FEATURE_MESSAGES
 		if ((tm_->Month == 1) && (tm_->Day == 1)) {
@@ -276,6 +278,7 @@ void display_time(display_mode_t mode)  // (wm)  runs approx every 100 ms
 			set_scroll("Merry Christmas");
 			show_scroll(scroll_ctr++*10/24);  // show BD message
 			}
+// uncomment this block to display a message on someone's birthday
 //		else if ((tm_->Month == 12) && (tm_->Day == 29)) {
 //			set_scroll("Happy Birthday Jeff");
 //			show_scroll(scroll_ctr++*10/24);  // show BD message
@@ -403,11 +406,12 @@ void main(void)
 	//set_string("--------");
 
 #ifdef FEATURE_MESSAGES
-	set_scroll("Happy Birthday Jeff");
-	for (scroll_ctr = 0; scroll_ctr<20; scroll_ctr++) {
-		show_scroll(scroll_ctr);
-		_delay_ms(200);
-	}
+// uncomment these to display a message when the clock is plugged in
+//	set_scroll("Happy Birthday Jeff");
+//	for (scroll_ctr = 0; scroll_ctr<20; scroll_ctr++) {
+//		show_scroll(scroll_ctr);
+//		_delay_ms(200);
+//	}
 #endif
 	
 	while (1) {  // << ===================== MAIN LOOP ===================== >>
