@@ -17,6 +17,7 @@
 *todo:
  * ?
  *
+ * 22feb13 10 step volume
  * 02jan13 generalize scrolling, add holiday messages
  * 30nov12 fix rule0 limits (again)
  * 26nov12 put menu_items in PROGMEM!
@@ -192,22 +193,24 @@ void initialize(void)
 	//rtc_set_alarm_s(17,0,0);
 
 	piezo_init();
-	beep(440, 1);
 	globals_init();
+	beep(440, 75);
+	_delay_ms(75);
 	display_init(g_brightness);
 
 	g_alarm_switch = get_alarm_switch();
 	
 #ifdef FEATURE_FLW
 	g_has_eeprom = has_eeprom();
-//	if (!g_has_eeprom)  beep(440,2);  // debug
+//	if (!g_has_eeprom)  beep(440,200);  // debug
 	if (!g_has_eeprom)
 		g_flw_enabled = false;
 	if (tm_ && g_has_eeprom)
 		seed_random(tm_->Hour * 10000 + tm_->Minute + 100 + tm_->Second);
 #endif
 
-	beep(1320, 1);
+	beep(1100, 75);
+	_delay_ms(75);
 	menu_init();  // must come after display, flw init
 	rtc_get_alarm_s(&alarm_hour, &alarm_min, &alarm_sec);
 
@@ -397,10 +400,7 @@ void main(void)
 			break;
 	}
 
-//	piezo_init();
-//	beep(440, 1);
-//	beep(1320, 1);
-	beep(440, 1);
+	beep(440, 75);
 
 	_delay_ms(500);
 	//set_string("--------");

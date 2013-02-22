@@ -30,7 +30,6 @@ const menu_value PROGMEM menu_gps[] = { {0, " off"}, {48, "  48"}, {96, "  96"} 
 #if defined FEATURE_AUTO_DST
 const PROGMEM menu_value menu_adst[] = { {0, " off"}, {1, "  on"}, {2, "auto"} };
 #endif
-const PROGMEM menu_value menu_volume[] = { {0, "  lo"}, {1, "  hi"} };
 const PROGMEM menu_value menu_region[] = { {0, " dmy"}, {1, " mdy"}, {2, " ymd"} };
 
 const PROGMEM menu_item menu24h = {MENU_24H,menu_offOn,"24H","24H",&g_24h_clock,&b_24h_clock,0,2,{NULL}};
@@ -94,7 +93,7 @@ const PROGMEM menu_item menuTemp = {MENU_TEMP,menu_offOn,"TEMP","TEMP",&g_show_t
 #ifdef FEATURE_MENU_TIME
 const PROGMEM menu_item menuTime = {MENU_TIME,menu_time,"TIME","TIME ",NULL,NULL,0,0,{NULL}};
 #endif
-const PROGMEM menu_item menuVol = {MENU_VOL,menu_list,"VOL","VOL",&g_volume,&b_volume,0,2,{menu_volume}};
+const PROGMEM menu_item menuVol = {MENU_VOL,menu_num,"VOL","VOL",&g_volume,&b_volume,1,10,{NULL}};
 
 const PROGMEM menu_item* PROGMEM const menuItems[] = { 
 	&menu24h, 
@@ -157,9 +156,9 @@ void setDSToffset(uint8_t mode) {
 	adjOffset = newOffset - g_DST_offset;  // offset delta
 	if (adjOffset == 0)  return;  // nothing to do
 	if (adjOffset > 0)
-		beep(880, 1);  // spring ahead
+		beep(880, 100);  // spring ahead
 	else
-		beep(440, 1);  // fall back
+		beep(440, 100);  // fall back
 	time_t tNow = rtc_get_time_t();  // fetch current time from RTC as time_t
 	tNow += adjOffset * SECS_PER_HOUR;  // add or subtract new DST offset
 	rtc_set_time_t(tNow);  // adjust RTC
@@ -196,7 +195,7 @@ void menu_action(menu_item * menuPtr)
 			break;
 		case MENU_VOL:
 			piezo_init();
-			beep(1000, 1);
+			beep(440, 100);
 			break;
 		case MENU_DATEYEAR:
 		case MENU_DATEMONTH:
@@ -342,9 +341,11 @@ void menu(uint8_t btn)
 					else
 						eeprom_update_byte(menuPtr->eeAddress, valNum);
 					}
+				show_setting_int(shortName, longName, valNum, show);
 				menu_action(menuPtr);
 			}
-			show_setting_int(shortName, longName, valNum, show);
+			else
+				show_setting_int(shortName, longName, valNum, show);
 			if (show)
 				update = true;
 			else

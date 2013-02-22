@@ -217,7 +217,7 @@ GPSerror1:
 GPSerror2:
 		g_gps_time_errors++;  // increment error count
 GPSerror2a:
-		beep(2093,1);  // error signal - I'm leaving this in for now /wm
+		beep(1100,200);  // error signal - I'm leaving this in for now /wm
 		flash_display(200);  // flash display to show GPS error
 		strcpy(gpsBuffer, "");  // wipe GPS buffer
 	}  // if "$GPRMC"

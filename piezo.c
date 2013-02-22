@@ -15,41 +15,55 @@
 
 #include "piezo.h"
 #include <util/delay.h>
+#include <avr/interrupt.h>
 
 extern uint8_t g_volume;
+uint16_t beep_counter = 0;
 
 // pizeo code from: https://github.com/adafruit/Ice-Tube-Clock
 void piezo_init(void) {
-	PEZ_PORT &= ~_BV(PEZ1) & ~_BV(PEZ2);
 	PEZ_DDR |= _BV(PEZ1) | _BV(PEZ2);
-	TCCR1A = _BV(COM1B1) | _BV(COM1B0) | _BV(WGM11);
+	PEZ_PORT &= ~_BV(PEZ1) & ~_BV(PEZ2);
+	TCCR1A = _BV(COM1A1) | _BV(COM1B1) | _BV(COM1B0) | _BV(WGM11);  // set OC1B on match, clear COM1A1, fast pwm
 	TCCR1B = _BV(WGM13) | _BV(WGM12);
-
-	if (g_volume) // high volume
-		TCCR1A |= _BV(COM1A1);
-
-  // start at 4khz:  250 * 8 multiplier * 4000 = 8mhz
-  ICR1 = 250;
-  OCR1B = OCR1A = ICR1 / 2;
 }
 
-void beep(uint16_t freq, uint8_t times) {
+// F_CPU = 8000000 (8 MHz), TIMER1 clock is 1000000 (1 MHz)
+// ICR1 (Top) = 1000000/freq - interrupt at freq to pulse spkr
+// TIMER1 interrupt rate = freq = 1000/freq ms
+// at low frequencies, time resolution is lower
+// example: at 100 hz, beep timer resolution is 10 ms
+void beep(uint16_t freq, uint8_t dur) {
   // set the PWM output to match the desired frequency
-  ICR1 = (F_CPU/8)/freq;
-  // we want 50% duty cycle square wave
-  OCR1A = OCR1B = ICR1/2;
-   
-  while (times--) {
-    TCCR1B |= _BV(CS11); // turn it on!
-    // beeps are 75ms long on
-    _delay_ms(75);
-    TCCR1B &= ~_BV(CS11); // turn it off!
-    PEZ_PORT &= ~_BV(PEZ1) & ~_BV(PEZ2);
-    // beeps are 75ms long off
-    _delay_ms(75);
-  }
+  uint16_t top = F_CPU/8/freq;  // set Top
+	uint16_t cm = (top>>8) * (g_volume+2);  // set duty cycle based on volume
+	ICR1 = top;
+	OCR1A = cm;
+  OCR1B = top - OCR1A;
+
+  // beep for the requested time
+	beep_counter = (long)dur * freq  / 1000;  // set delay counter
+	TCNT1 = 0; // Initialize counter
+  TCCR1B |= _BV(CS11); // connect clock to turn speaker on
+	TIMSK1 |= (1<<TOIE1); // Enable Timer1 Overflow Interrupt
+	_delay_ms(dur);
+
+}
+
+void beepEnd(void) {
+	TIMSK1 &= ~(1<<TOIE1);  // disable Timer1 
+  TCCR1B &= ~_BV(CS11); // disconnect clock source to turn it off
   // turn speaker off
   PEZ_PORT &= ~_BV(PEZ1) & ~_BV(PEZ2);
+}
+
+ISR(TIMER1_OVF_vect)
+{
+	if (beep_counter > 0)
+		beep_counter--;
+	else {
+		beepEnd();
+	}
 }
 
 // This makes the speaker tick, it doesnt use PWM
@@ -76,6 +90,6 @@ void tick(void) {
 
 void alarm(void)
 {
-	beep(500, 1);
+	beep(500, 100);
 }
 

@@ -28,7 +28,7 @@ uint8_t EEMEM b_24h_clock = 1;
 uint8_t EEMEM b_show_temp = 0;
 uint8_t EEMEM b_show_dots = 1;
 uint8_t EEMEM b_brightness = 8;
-uint8_t EEMEM b_volume = 0;
+uint8_t EEMEM b_volume = 10;
 #ifdef FEATURE_FLW
 uint8_t EEMEM b_flw_enabled = 0;
 #endif
