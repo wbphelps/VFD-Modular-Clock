@@ -18,7 +18,7 @@
 #include <avr/interrupt.h>
 
 extern uint8_t g_volume;
-uint16_t beep_counter = 0;
+volatile uint16_t beep_counter = 0;
 
 // pizeo code from: https://github.com/adafruit/Ice-Tube-Clock
 void piezo_init(void) {

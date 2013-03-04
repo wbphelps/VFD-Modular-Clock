@@ -44,12 +44,12 @@ uint8_t calculate_segments_7(uint8_t character);
 
 enum shield_t shield = SHIELD_NONE;
 uint8_t digits = 6;
-uint8_t mpx_count = 8;  // wm
+volatile uint8_t mpx_count = 8;  // wm
 volatile char data[10]; // Digit data (with a little extra room)
-uint8_t us_counter = 0; // microsecond counter
-uint8_t multiplex_counter = 0;
+//uint8_t us_counter = 0; // microsecond counter
+volatile uint8_t multiplex_counter = 0;
 #ifdef FEATURE_WmGPS
-uint8_t gps_counter = 0;
+volatile uint8_t gps_counter = 0;
 #endif
 static char sData[32];  // scroll message - 25 chars plus 8 spaces
 const uint8_t scroll_len = 32;
@@ -65,7 +65,7 @@ extern uint8_t g_has_eeprom;
 
 // variables for controlling display blink
 uint8_t blink;
-uint16_t blink_counter = 0;
+volatile uint16_t blink_counter = 0;
 volatile uint8_t display_on = true;
 
 // dots [bit 0~5]
@@ -166,9 +166,9 @@ void set_brightness(uint8_t brightness) {
 	g_brightness = brightness;  // update global so it stays consistent 16nov12/wbp
 	// workaround: IV17 shield not compatible with PWM dimming method
 	// using simple software dimming instead
-	if (shield == SHIELD_IV17) {
-		return;
-	}
+//	if (shield == SHIELD_IV17) {
+//		return;
+//	}
 
 	if (brightness > 10) brightness = 10;
 	brightness = (10 - brightness) * 25; // translate to PWM value
@@ -180,7 +180,6 @@ void set_brightness(uint8_t brightness) {
 
 	// fast PWM, fastest clock, set OC0A (blank) on match
 	TCCR0A = _BV(WGM00) | _BV(WGM01);  
- 
 	TCCR0A |= _BV(COM0A1);
 }
 
@@ -201,84 +200,30 @@ void flash_display(uint16_t ms)  // this does not work but why???
 void display_multiplex_iv17(void)
 {
 	clear_display();
-	switch (multiplex_counter) {
-		case 0:
-			write_vfd_iv17(0, calculate_segments_16(display_on ? data[0] : ' '));
-			break;
-		case 1:
-			write_vfd_iv17(1, calculate_segments_16(display_on ? data[1] : ' '));
-			break;
-		case 2:
-			write_vfd_iv17(2, calculate_segments_16(display_on ? data[2] : ' '));
-			break;
-		case 3:
-			write_vfd_iv17(3, calculate_segments_16(display_on ? data[3] : ' '));
-			break;
-	}
+	write_vfd_iv17(multiplex_counter, calculate_segments_16(display_on ? data[multiplex_counter] : ' '));
 	multiplex_counter++;
-	// g_brightness == 1 thru 10
-	if (multiplex_counter == (4 + (18 - (g_brightness-1)*2))) multiplex_counter = 0;
+//	// g_brightness == 1 thru 10
+//	if (multiplex_counter == (4 + (18 - (g_brightness-1)*2))) multiplex_counter = 0;
+	if (multiplex_counter == 4) multiplex_counter = 0;
 }
 
 // display multiplexing routine for IV6 shield: run once every 2ms
 void display_multiplex_iv6(void)
 {
 	clear_display();
-	switch (multiplex_counter) {
-		case 0:
-			write_vfd_iv6(0, calculate_segments_7(display_on ? data[0] : ' '));
-			break;
-		case 1:
-			write_vfd_iv6(1, calculate_segments_7(display_on ? data[1] : ' '));
-			break;
-		case 2:
-			write_vfd_iv6(2, calculate_segments_7(display_on ? data[2] : ' '));
-			break;
-		case 3:
-			write_vfd_iv6(3, calculate_segments_7(display_on ? data[3] : ' '));
-			break;
-		case 4:
-			write_vfd_iv6(4, calculate_segments_7(display_on ? data[4] : ' '));
-			break;
-		case 5:
-			write_vfd_iv6(5, calculate_segments_7(display_on ? data[5] : ' '));
-			break;
-	}
+	write_vfd_iv6(multiplex_counter, calculate_segments_7(display_on ? data[multiplex_counter] : ' '));
 	multiplex_counter++;
 	if (multiplex_counter == 6) multiplex_counter = 0;
 }
 
-// display multiplexing routine for IV6 shield: run once every 2ms
+// display multiplexing routine for IV8 shield: run once every 2ms
 void display_multiplex_iv18(void)
 {
 	uint8_t seg = 0;
 	clear_display();
-	switch (multiplex_counter) {
-		case 0:
-			write_vfd_iv18(0, calculate_segments_7(display_on ? data[7] : ' '));
-			break;
-		case 1:
-			write_vfd_iv18(1, calculate_segments_7(display_on ? data[6] : ' '));
-			break;
-		case 2:
-			write_vfd_iv18(2, calculate_segments_7(display_on ? data[5] : ' '));
-			break;
-		case 3:
-			write_vfd_iv18(3, calculate_segments_7(display_on ? data[4] : ' '));
-			break;
-		case 4:
-			write_vfd_iv18(4, calculate_segments_7(display_on ? data[3] : ' '));
-			break;
-		case 5:
-			write_vfd_iv18(5, calculate_segments_7(display_on ? data[2] : ' '));
-			break;
-		case 6:
-			write_vfd_iv18(6, calculate_segments_7(display_on ? data[1] : ' '));
-			break;
-		case 7:
-			write_vfd_iv18(7, calculate_segments_7(display_on ? data[0] : ' '));
-			break;
-		case 8:  // show alarm switch status
+	if (multiplex_counter<8)
+		write_vfd_iv18(multiplex_counter, calculate_segments_7(display_on ? data[7-multiplex_counter] : ' '));
+	else {  // show alarm switch & gps status
 			if (g_alarm_switch)
 //				write_vfd_iv18(8, (1<<7));
 				seg = (1<<7);
@@ -287,7 +232,6 @@ void display_multiplex_iv18(void)
 			if (g_gps_updating)
 				seg |= (1<<6);
 			write_vfd_iv18(8, seg);
-			break;
 	}
 	multiplex_counter++;
 	if (multiplex_counter == 9) multiplex_counter = 0;
@@ -297,20 +241,7 @@ void display_multiplex_iv18(void)
 void display_multiplex_iv22(void)
 {
 	clear_display();
-	switch (multiplex_counter) {
-		case 0:
-			write_vfd_iv22(0, calculate_segments_7(display_on ? data[0] : ' '));
-			break;
-		case 1:
-			write_vfd_iv22(1, calculate_segments_7(display_on ? data[1] : ' '));
-			break;
-		case 2:
-			write_vfd_iv22(2, calculate_segments_7(display_on ? data[2] : ' '));
-			break;
-		case 3:
-			write_vfd_iv22(3, calculate_segments_7(display_on ? data[3] : ' '));
-			break;
-	}
+	write_vfd_iv22(multiplex_counter, calculate_segments_7(display_on ? data[multiplex_counter] : ' '));
 	multiplex_counter++;
 	if (multiplex_counter == 4) multiplex_counter = 0;
 }
@@ -337,10 +268,10 @@ void display_multiplex(void)
 
 void button_timer(void);
 //uint8_t interrupt_counter = 0;  // moved to display.h
-uint16_t button_counter = 0;
+volatile uint16_t button_counter = 0;
 
-// 1 click = 1us. Overflow every 256 us
-// (3906.25 times a second)
+// clock at 8 Mhz, prescaler set to div by 8.  1 click = 1us. Overflow every 256 us
+// 0.000256 secs (3906.25 times a second)
  
 ISR(TIMER0_OVF_vect)
 {

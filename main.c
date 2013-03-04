@@ -17,6 +17,7 @@
 *todo:
  * ?
  *
+ * 04mar13 fix crash caused by display mpx timer int
  * 22feb13 10 step volume
  * 02jan13 generalize scrolling, add holiday messages
  * 30nov12 fix rule0 limits (again)
@@ -209,7 +210,7 @@ void initialize(void)
 		seed_random(tm_->Hour * 10000 + tm_->Minute + 100 + tm_->Second);
 #endif
 
-	beep(1100, 75);
+	beep(880, 75);
 	_delay_ms(75);
 	menu_init();  // must come after display, flw init
 	rtc_get_alarm_s(&alarm_hour, &alarm_min, &alarm_sec);
@@ -282,10 +283,10 @@ void display_time(display_mode_t mode)  // (wm)  runs approx every 100 ms
 			show_scroll(scroll_ctr++*10/24);  // show BD message
 			}
 // uncomment this block to display a message on someone's birthday
-//		else if ((tm_->Month == 12) && (tm_->Day == 29)) {
-//			set_scroll("Happy Birthday Jeff");
-//			show_scroll(scroll_ctr++*10/24);  // show BD message
-//			}
+		else if ((tm_->Month == 03) && (tm_->Day == 14)) {
+			set_scroll("Happy Birthday William");
+			show_scroll(scroll_ctr++*10/24);  // show BD message
+			}
 		else
 #endif		
 			show_date(tm_, g_Region, (scroll_ctr++) * 10 / 38);  // show date from last rtc_get_time() call
@@ -382,7 +383,8 @@ void main(void)
 	// Counters used when setting time
 	uint16_t button_released_timer = 0;
 	uint16_t button_speed = 2;
-	
+
+/* ***	
 	switch (shield) {
 		case(SHIELD_IV6):
 			set_string("IV-6");
@@ -399,6 +401,7 @@ void main(void)
 		default:
 			break;
 	}
+   *** */	
 
 	beep(440, 75);
 
@@ -407,11 +410,11 @@ void main(void)
 
 #ifdef FEATURE_MESSAGES
 // uncomment these to display a message when the clock is plugged in
-//	set_scroll("Happy Birthday Jeff");
-//	for (scroll_ctr = 0; scroll_ctr<20; scroll_ctr++) {
-//		show_scroll(scroll_ctr);
-//		_delay_ms(200);
-//	}
+	set_scroll("Happy Birthday William");
+	for (scroll_ctr = 0; scroll_ctr<20; scroll_ctr++) {
+		show_scroll(scroll_ctr);
+		_delay_ms(200);
+	}
 #endif
 	
 	while (1) {  // << ===================== MAIN LOOP ===================== >>
