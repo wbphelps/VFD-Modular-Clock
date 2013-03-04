@@ -86,6 +86,7 @@ typedef enum {  // no ifdefs, no harm in defining unused items
 	MENU_AUTODIM_LEVEL,
 	MENU_AUTOBRT_HOUR,
 	MENU_AUTOBRT_LEVEL,
+	MENU_BIGBEN,
 	MENU_BRIGHTNESS,
 	MENU_DATE,
 	MENU_DATEYEAR,

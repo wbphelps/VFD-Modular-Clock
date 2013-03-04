@@ -407,6 +407,9 @@ void main(void)
 
 	_delay_ms(500);
 	//set_string("--------");
+#ifdef FEATURE_BIGBEN
+	ben1(2); ben3(2);
+#endif
 
 #ifdef FEATURE_MESSAGES
 // uncomment these to display a message when the clock is plugged in
@@ -592,6 +595,27 @@ void main(void)
 				set_brightness(g_AutoDimLevel);
 			else if (tm_->Hour == g_AutoBrtHour)
 				set_brightness(g_AutoBrtLevel);
+		}
+#endif
+
+#ifdef FEATURE_BIGBEN
+		if ((g_BigBen) && (tm_->Second == 0))  {  // Big Ben enabled?
+			if (tm_->Minute == 15) {
+				ben1(2);
+			}
+			else if (tm_->Minute == 30) {
+				ben2(1); ben3(2);
+			}
+			else if (tm_->Minute == 45) {
+				ben4(1); ben5(1); ben1(2);
+			}
+			else if (tm_->Minute == 0) {
+				ben2(1); ben3(1); ben4(1); ben5(1);
+				for (uint8_t i = 0; i<tm_->Hour; i++) {
+					_delay_ms(500);
+					note(4,4,32);
+				}
+			}
 		}
 #endif
 

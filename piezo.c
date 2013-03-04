@@ -13,12 +13,86 @@
  *
  */
 
+#include <avr/io.h>
+#include "globals.h"
 #include "piezo.h"
 #include <util/delay.h>
 #include <avr/interrupt.h>
 
-extern uint8_t g_volume;
+//extern uint8_t g_volume;
 volatile uint16_t beep_counter = 0;
+
+#ifdef FEATURE_BIGBEN
+short freqs[] = {130.81, 138.59, 146.83, 155.56, 164.81, 174.61, 185.00, 196.00, 207.65, 220.00, 233.08, 246.94};
+const uint8_t Cn=0;
+const uint8_t Cs=1;
+const uint8_t Df=1;
+const uint8_t Dn=2;
+const uint8_t Ds=3;
+const uint8_t Ef=3;
+const uint8_t En=4;
+const uint8_t Ff=4;
+const uint8_t Fn=5;
+const uint8_t Fs=6;
+const uint8_t Gf=6;
+const uint8_t Gn=7;
+const uint8_t Gs=8;
+const uint8_t Af=8;
+const uint8_t An=9;
+const uint8_t As=10;
+const uint8_t Bf=10;
+const uint8_t Bn=11;
+const uint16_t tempo = 16;
+
+void note(uint8_t n, uint8_t octave, uint16_t timing) {
+	double m = 1;
+	for (uint8_t i = 0; i<(octave-3); i++) {
+		m *= 2;
+	}
+	double f = freqs[n] * m;
+	uint16_t t = timing * tempo;
+	beep(f, t);
+	_delay_ms(tempo/2);
+}
+
+uint16_t bT = 16;
+uint8_t bO = 5;
+void ben1(uint8_t lnd) {
+	note(Gs,bO,bT);
+	note(Fs,bO,bT);
+	note(En,bO,bT);
+	note(Bn,bO-1,bT*2);
+	_delay_ms(250);
+}
+void ben2(uint8_t lnd) {
+	note(En,bO,bT);
+	note(Gs,bO,bT);
+	note(Fs,bO,bT);
+	note(Bn,bO-1,bT*lnd);
+	_delay_ms(250);
+}
+void ben3(uint8_t lnd) {
+	note(En,bO,bT);
+	note(Fs,bO,bT);
+	note(Gs,bO,bT);
+	note(En,bO,bT*lnd);
+	_delay_ms(250);
+}
+void ben4(uint8_t lnd) {
+	note(Gs,bO,bT);
+	note(En,bO,bT);
+	note(Fs,bO,bT);
+	note(Bn,bO-1,bT*lnd);
+	_delay_ms(250);
+}
+void ben5(uint8_t lnd) {
+	note(Bn,bO-1,bT);
+	note(Fs,bO,bT);
+	note(Gs,bO,bT);
+	note(En,bO,bT*lnd);
+	_delay_ms(250);
+}
+#endif
 
 // pizeo code from: https://github.com/adafruit/Ice-Tube-Clock
 void piezo_init(void) {
@@ -33,7 +107,7 @@ void piezo_init(void) {
 // TIMER1 interrupt rate = freq = 1000/freq ms
 // at low frequencies, time resolution is lower
 // example: at 100 hz, beep timer resolution is 10 ms
-void beep(uint16_t freq, uint8_t dur) {
+void beep(uint16_t freq, uint16_t dur) {
   // set the PWM output to match the desired frequency
   uint16_t top = F_CPU/8/freq;  // set Top
 	uint16_t cm = (top>>8) * (g_volume+2);  // set duty cycle based on volume

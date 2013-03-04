@@ -78,6 +78,9 @@ uint8_t EEMEM b_DST_Rule7 = 2;  // DST end hour
 uint8_t EEMEM b_DST_Rule8 = 1;  // DST offset
 #endif
 #endif
+#ifdef FEATURE_BIGBEN
+uint8_t EEMEM b_BigBen = 0;
+#endif
 
  void globals_init(void)
  {
@@ -128,5 +131,8 @@ uint8_t EEMEM b_DST_Rule8 = 1;  // DST offset
 	g_DST_Rules[6] = eeprom_read_byte(&b_DST_Rule6);  // DST end week
 	g_DST_Rules[7] = eeprom_read_byte(&b_DST_Rule7);  // DST end hour
 	g_DST_Rules[8] = eeprom_read_byte(&b_DST_Rule8);  // DST offset
+#endif
+#ifdef FEATURE_BIGBEN
+	g_BigBen = eeprom_read_byte(&b_BigBen);
 #endif
  }

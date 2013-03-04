@@ -19,6 +19,7 @@
 #define FEATURE_MENU_TIME  // add alarm & time to menu
 #define FEATURE_GPS_DEBUG  // enables GPS debugging counters & menu items
 #define FEATURE_MESSAGES  // holiday messages
+#define FEATURE_BIGBEN  // Westminster chimes
 
 #ifdef __FLASH
 #define FLASH __flash
@@ -72,6 +73,9 @@ extern uint8_t b_DST_Rule6;
 extern uint8_t b_DST_Rule7;
 extern uint8_t b_DST_Rule8;
 #endif
+#ifdef FEATURE_BIGBEN
+extern uint8_t b_BigBen;
+#endif
 
 int8_t g_24h_clock;
 int8_t g_show_temp;
@@ -118,6 +122,9 @@ int8_t g_AutoDimHour;
 int8_t g_AutoDimLevel;
 int8_t g_AutoBrtHour;
 int8_t g_AutoBrtLevel;
+#endif
+#ifdef FEATURE_BIGBEN
+int8_t g_BigBen;
 #endif
 uint8_t g_has_dots; // can current shield show dot (decimal points)
 #ifdef FEATURE_FLW
