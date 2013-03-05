@@ -611,9 +611,14 @@ void main(void)
 			}
 			else if (tm_->Minute == 0) {
 				ben2(1); ben3(1); ben4(1); ben5(1);
-				for (uint8_t i = 0; i<tm_->Hour; i++) {
+				uint8_t h = tm_->Hour;
+				if (!g_24h_clock) {
+					if (h>12)  h = h-12;
+					if (h==0)  h = 12;
+				}
+				for (uint8_t i = 0; i<h; i++) {
 					_delay_ms(500);
-					note(4,4,32);
+					note(4,4,32);  // E(4)
 				}
 			}
 		}
