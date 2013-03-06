@@ -435,6 +435,8 @@ void main(void)
 			if (buttons.b1_keydown || buttons.b1_keyup || buttons.b2_keydown || buttons.b2_keyup) {
 				buttons.b1_keyup = 0; // clear state
 				buttons.b2_keyup = 0; // clear state
+				buttons.b1_keydown = 0; // clear state
+				buttons.b2_keydown = 0; // clear state
 				g_alarming = false;
 				alarm(0);  // turn alarm off
 			}
