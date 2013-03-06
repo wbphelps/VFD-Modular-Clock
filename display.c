@@ -45,6 +45,7 @@ uint8_t calculate_segments_7(uint8_t character);
 enum shield_t shield = SHIELD_NONE;
 uint8_t digits = 6;
 volatile uint8_t mpx_count = 8;  // wm
+volatile uint8_t mpx_limit = 8;
 volatile char data[10]; // Digit data (with a little extra room)
 //uint8_t us_counter = 0; // microsecond counter
 volatile uint8_t multiplex_counter = 0;
@@ -94,20 +95,24 @@ void detect_shield(void)
 		case(1):  // IV-17 shield
 			shield = SHIELD_IV17;
 			digits = 4;
+			mpx_limit = 4;
 			mpx_count = 4;
 			g_has_dots = false;
 			break;
 		case(2):  // IV-6 shield
 			shield = SHIELD_IV6;
 			digits = 6;
+			mpx_limit = 6;
 			break;
 		case(6):  // IV-22 shield
 			shield = SHIELD_IV22;
 			digits = 4;
+			mpx_limit = 4;
 			break;
 		case(7):  // IV-18 shield (note: save value as no shield - all bits on)
 			shield = SHIELD_IV18;
 			digits = 8;
+			mpx_limit = 9;  // 8 digits plus dot/dash
 			mpx_count = 7; 
 			break;
 		default:
@@ -148,39 +153,31 @@ void display_init(uint8_t brightness)
 	SIGNATURE_PORT |= _BV(SIGNATURE_BIT_1);
 	SIGNATURE_PORT |= _BV(SIGNATURE_BIT_2);
 
+	detect_shield();
+
 	LATCH_ENABLE;
 	clear_display();
 
-	detect_shield();
-
-	// Inititalize timer for multiplexing
+	// Inititalize Timer0 for PWM on PB2/OC0A (Blank)
+	// fast PWM, fastest clock, set OC0A (blank) on match
+	TCCR0A |= _BV(COM0A1) | _BV(WGM00) | _BV(WGM01);  
 	TCCR0B |= (1<<CS01); // Set Prescaler to clk/8 : 1 click = 1us. CS21=1
 	TIMSK0 |= (1<<TOIE0); // Enable Overflow Interrupt Enable
 	TCNT0 = 0; // Initialize counter
-	
+
 	set_brightness(brightness);
 }
 
 // brightness value: 1 (low) - 10 (high)
 void set_brightness(uint8_t brightness) {
 	g_brightness = brightness;  // update global so it stays consistent 16nov12/wbp
-	// workaround: IV17 shield not compatible with PWM dimming method
-	// using simple software dimming instead
-//	if (shield == SHIELD_IV17) {
-//		return;
-//	}
-
-	if (brightness > 10) brightness = 10;
-	brightness = (10 - brightness) * 25; // translate to PWM value
-
+uint16_t brt = brightness;
+	if (brt > 10) brt = 10;
+	brt = (10 - brt) * 25; // translate to PWM value
 	// Brightness is set by setting the PWM duty cycle for the blank
 	// pin of the VFD driver.
 	// 255 = min brightness, 0 = max brightness 
-	OCR0A = brightness;
-
-	// fast PWM, fastest clock, set OC0A (blank) on match
-	TCCR0A = _BV(WGM00) | _BV(WGM01);  
-	TCCR0A |= _BV(COM0A1);
+	OCR0A = brt;
 }
 
 void set_blink(bool OnOff)
@@ -196,73 +193,37 @@ void flash_display(uint16_t ms)  // this does not work but why???
 	display_on = true;
 }
 
-// display multiplexing routine for 4 digits: run once every 1 ms
-void display_multiplex_iv17(void)
-{
-	clear_display();
-	write_vfd_iv17(multiplex_counter, calculate_segments_16(display_on ? data[multiplex_counter] : ' '));
-	multiplex_counter++;
-//	// g_brightness == 1 thru 10
-//	if (multiplex_counter == (4 + (18 - (g_brightness-1)*2))) multiplex_counter = 0;
-	if (multiplex_counter == 4) multiplex_counter = 0;
-}
-
-// display multiplexing routine for IV6 shield: run once every 2ms
-void display_multiplex_iv6(void)
-{
-	clear_display();
-	write_vfd_iv6(multiplex_counter, calculate_segments_7(display_on ? data[multiplex_counter] : ' '));
-	multiplex_counter++;
-	if (multiplex_counter == 6) multiplex_counter = 0;
-}
-
-// display multiplexing routine for IV8 shield: run once every 2ms
-void display_multiplex_iv18(void)
+void display_multiplex(void)
 {
 	uint8_t seg = 0;
 	clear_display();
-	if (multiplex_counter<8)
-		write_vfd_iv18(multiplex_counter, calculate_segments_7(display_on ? data[7-multiplex_counter] : ' '));
-	else {  // show alarm switch & gps status
-			if (g_alarm_switch)
-//				write_vfd_iv18(8, (1<<7));
-				seg = (1<<7);
-//			else
-//				write_vfd_iv18(8, 0);
-			if (g_gps_updating)
-				seg |= (1<<6);
-			write_vfd_iv18(8, seg);
-	}
-	multiplex_counter++;
-	if (multiplex_counter == 9) multiplex_counter = 0;
-}
-
-// display multiplexing routine for IV6 shield: run once every 2ms
-void display_multiplex_iv22(void)
-{
-	clear_display();
-	write_vfd_iv22(multiplex_counter, calculate_segments_7(display_on ? data[multiplex_counter] : ' '));
-	multiplex_counter++;
-	if (multiplex_counter == 4) multiplex_counter = 0;
-}
-
-void display_multiplex(void)
-{
-	switch (shield) {
-		case SHIELD_IV6:
-			display_multiplex_iv6();
-			break;
-		case SHIELD_IV17:
-			display_multiplex_iv17();
-			break;
-		case SHIELD_IV18:
-			display_multiplex_iv18();
-			break;
-		case SHIELD_IV22:
-			display_multiplex_iv22();
-			break;
-		default:
-			break;
+	if (display_on) {
+		switch (shield) {
+			case SHIELD_IV6:
+				write_vfd_iv6(multiplex_counter, calculate_segments_7(data[multiplex_counter]));
+				break;
+			case SHIELD_IV17:
+				write_vfd_iv17(multiplex_counter, calculate_segments_16(data[multiplex_counter]));
+				break;
+			case SHIELD_IV18:
+				if (multiplex_counter<8)
+					write_vfd_iv18(multiplex_counter, calculate_segments_7(data[7-multiplex_counter]));
+				else {  // show alarm switch & gps status
+					if (g_alarm_switch)
+						seg = (1<<7);
+					if (g_gps_updating)
+						seg |= (1<<6);
+					write_vfd_iv18(8, seg);
+				}
+				break;
+			case SHIELD_IV22:
+				write_vfd_iv22(multiplex_counter, calculate_segments_7(data[multiplex_counter]));
+				break;
+			default:
+				break;
+		}
+		multiplex_counter++;
+		if (multiplex_counter == mpx_limit) multiplex_counter = 0;
 	}
 }
 
@@ -297,26 +258,17 @@ ISR(TIMER0_OVF_vect)
 		button_counter = 0;
 	}
 	
-	// display multiplex - 
-//	if (++interrupt_counter == 9) {  // wm
 	if (++interrupt_counter == mpx_count) {  // every 0.002048 seconds, 0.001024 for iv-17
-		display_multiplex();  
 		interrupt_counter = 0;
+		display_multiplex();  
 	}
 
 #ifdef FEATURE_WmGPS
 	if (++gps_counter == 4) {  // every 0.001024 seconds
-		GPSread();  // check for data on the serial port
 		gps_counter = 0;
+		GPSread();  // check for data on the serial port
 	}
 #endif
-
-// IV-18 done twice??? See display_multiplex()
-//	// display multiplex (IV-18 shield)  
-//	if (shield == SHIELD_IV18 && ++interrupt_counter == 7) {
-//		display_multiplex_iv18();
-//		interrupt_counter = 0;
-//	}
 }
 
 // utility functions

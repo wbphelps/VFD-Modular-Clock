@@ -16,7 +16,7 @@
 /* Updates by William B Phelps
 *todo:
  * ?
- *
+ * 05mar13 add vars for birthday message
  * 04mar13 fix crash caused by display mpx timer int
  * 22feb13 10 step volume
  * 02jan13 generalize scrolling, add holiday messages
@@ -154,6 +154,12 @@ uint16_t g_show_special_cnt = 0;  // display something special ("time", "alarm",
 tmElements_t* tm_; // current local date and time as TimeElements (pointer)
 //uint8_t alarm_hour = 0, alarm_min = 0, alarm_sec = 0;
 
+#ifdef FEATURE_MESSAGES
+char bdMsg[] = "Happy Birthday John";
+uint8_t bdMonth = 2;
+uint8_t bdDay = 28;
+#endif
+
 extern enum shield_t shield;
 
 void initialize(void)
@@ -198,7 +204,7 @@ void initialize(void)
 	beep(440, 75);
 	_delay_ms(75);
 	display_init(g_brightness);
-
+	
 	g_alarm_switch = get_alarm_switch();
 	
 #ifdef FEATURE_FLW
@@ -283,8 +289,8 @@ void display_time(display_mode_t mode)  // (wm)  runs approx every 100 ms
 			show_scroll(scroll_ctr++*10/24);  // show BD message
 			}
 // uncomment this block to display a message on someone's birthday
-		else if ((tm_->Month == 03) && (tm_->Day == 14)) {
-			set_scroll("Happy Birthday William");
+		else if ((tm_->Month == bdMonth) && (tm_->Day == bdDay)) {
+			set_scroll(bdMsg);
 			show_scroll(scroll_ctr++*10/24);  // show BD message
 			}
 		else
@@ -384,7 +390,6 @@ void main(void)
 	uint16_t button_released_timer = 0;
 	uint16_t button_speed = 2;
 
-/* ***	
 	switch (shield) {
 		case(SHIELD_IV6):
 			set_string("IV-6");
@@ -401,7 +406,6 @@ void main(void)
 		default:
 			break;
 	}
-   *** */	
 
 	beep(440, 75);
 
@@ -413,11 +417,12 @@ void main(void)
 
 #ifdef FEATURE_MESSAGES
 // uncomment these to display a message when the clock is plugged in
-	set_scroll("Happy Birthday William");
-	for (scroll_ctr = 0; scroll_ctr<20; scroll_ctr++) {
+	set_scroll(bdMsg);
+	for (scroll_ctr = 0; scroll_ctr<=strlen(bdMsg); scroll_ctr++) {
 		show_scroll(scroll_ctr);
 		_delay_ms(200);
 	}
+	_delay_ms(500);
 #endif
 	
 	while (1) {  // << ===================== MAIN LOOP ===================== >>
@@ -636,7 +641,7 @@ void main(void)
 			_delay_ms(2);
 #endif
 
-		_delay_ms(74);  // tuned so loop runs 10 times a second
+		_delay_ms(70);  // tuned so loop runs 10 times a second
 
 		}  // while (1)
 }  // main()
