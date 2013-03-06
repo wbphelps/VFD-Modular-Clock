@@ -201,8 +201,7 @@ void initialize(void)
 
 	piezo_init();
 	globals_init();
-	beep(440, 75);
-	_delay_ms(75);
+//	beep(440, 75);
 	display_init(g_brightness);
 	
 	g_alarm_switch = get_alarm_switch();
@@ -216,8 +215,7 @@ void initialize(void)
 		seed_random(tm_->Hour * 10000 + tm_->Minute + 100 + tm_->Second);
 #endif
 
-	beep(880, 75);
-	_delay_ms(75);
+//	beep(880, 75);
 	menu_init();  // must come after display, flw init
 	rtc_get_alarm_s(&alarm_hour, &alarm_min, &alarm_sec);
 
@@ -407,12 +405,12 @@ void main(void)
 			break;
 	}
 
-	beep(440, 75);
+//	beep(440, 75);
 
 	_delay_ms(500);
 	//set_string("--------");
-#ifdef FEATURE_BIGBEN
-	ben1(2); ben3(2);
+#ifdef FEATURE_REVEILLE
+	play_reveille();
 #endif
 
 #ifdef FEATURE_MESSAGES
@@ -438,9 +436,10 @@ void main(void)
 				buttons.b1_keyup = 0; // clear state
 				buttons.b2_keyup = 0; // clear state
 				g_alarming = false;
+				alarm(0);  // turn alarm off
 			}
 			else {
-				alarm();	
+				alarm(1);	  // turn alarm on (if not already on)
 			}
 		}
 		// If both buttons are held:
@@ -641,7 +640,7 @@ void main(void)
 			_delay_ms(2);
 #endif
 
-		_delay_ms(70);  // tuned so loop runs 10 times a second
+		_delay_ms(70);  // tuned so loop runs 10 times a second ?
 
 		}  // while (1)
 }  // main()

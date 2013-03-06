@@ -19,7 +19,7 @@
 #define FEATURE_MENU_TIME  // add alarm & time to menu
 #define FEATURE_GPS_DEBUG  // enables GPS debugging counters & menu items
 #define FEATURE_MESSAGES  // holiday messages
-#define FEATURE_BIGBEN  // Westminster chimes
+#define FEATURE_REVEILLE  // Reveille
 
 #ifdef __FLASH
 #define FLASH __flash
