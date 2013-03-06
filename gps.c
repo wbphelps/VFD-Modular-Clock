@@ -52,7 +52,8 @@ void GPSread(void)
 			gpsBufferPtr = 0;
 			gpsDataReady_ = true;  // signal data ready
 		}
-		gpsNextBuffer[gpsBufferPtr++] = c;  // add char to current buffer, then increment index
+		gpsNextBuffer[gpsBufferPtr] = c;  // add char to current buffer
+		gpsBufferPtr++;  // increment index
 		if (gpsBufferPtr >= GPSBUFFERSIZE)  // if buffer full
 			gpsBufferPtr = GPSBUFFERSIZE-1;  // decrement index to make room (overrun)
 	}
