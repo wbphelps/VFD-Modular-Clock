@@ -150,6 +150,8 @@ uint16_t g_autodisp = 50;  // how long to display date 5.0 seconds
 uint8_t g_autotime = 54;  // controls when to display date and when to display time in FLW mode
 
 uint8_t g_alarming = false; // alarm is going off
+uint16_t g_snooze_count = 0; // alarm snooze counter
+uint8_t g_snooze_time = 10; // snooze for 10 minutes
 uint8_t g_alarm_switch;
 uint16_t g_show_special_cnt = 0;  // display something special ("time", "alarm", etc)
 //time_t g_tNow = 0;  // current local date and time as time_t, with DST offset
@@ -258,11 +260,17 @@ display_mode_t save_mode = MODE_NORMAL;  // for restoring mode after autodate di
 // Alarm switch changed interrupt
 ISR( PCINT2_vect )
 {
-	if ( (SWITCH_PIN & _BV(SWITCH_BIT)) == 0)
+	if ( (SWITCH_PIN & _BV(SWITCH_BIT)) == 0) {
 		g_alarm_switch = false;
+		if (g_alarming) {
+			alarm(0);  // stop alarm sound
+			g_alarming = false;  // cancel alarm
+			g_snooze_count = 0;  // and snooze
+		}
+	}
 	else {
 		g_alarm_switch = true;
-		}
+	}
 	g_show_special_cnt = 10;  // show alarm text for 1 second
 	if (get_digits() == 8)
 		clock_mode = MODE_ALARM_TIME;
@@ -428,17 +436,19 @@ void main(void)
 	while (1) {  // << ===================== MAIN LOOP ===================== >>
 		get_button_state(&buttons);
 		// When alarming:
-		// any button press cancels alarm
-		if (g_alarming) {
+		// any button press snoozes alarm
+		if (g_snooze_count>0)
+			g_snooze_count--;
+		if (g_alarming && (g_snooze_count==0)) {
 			display_time(clock_mode);  // read and display time (??)
 
 			// fixed: if keydown is detected here, wait for keyup and clear state
 			// this prevents going into the menu when disabling the alarm 
-			if ((!g_alarm_switch) || (buttons.b1_keydown || buttons.b1_keyup || buttons.b2_keydown || buttons.b2_keyup)) {
+			if (buttons.b1_keydown || buttons.b1_keyup || buttons.b2_keydown || buttons.b2_keyup) {
 				buttons.b1_keyup = 0; // clear state
 				buttons.b2_keyup = 0; // clear state
-				g_alarming = false;
-				alarm(0);  // turn alarm off
+				alarm(0);  // stop alarm sound
+				g_snooze_count = g_snooze_time*60*10;  // start snooze timer
 				while (buttons.b1_keydown || buttons.b2_keydown) {  // wait for button to be released
 					_delay_ms(100);
 					get_button_state(&buttons);
@@ -452,6 +462,8 @@ void main(void)
 		//  * If the ALARM BUTTON SWITCH is on the LEFT, go into set time mode
 		//  * If the ALARM BUTTON SWITCH is on the RIGHT, go into set alarm mode
 		else if (menu_state == STATE_CLOCK && buttons.both_held) {
+			g_alarming = false;  // setting time or alarm, cancel alarm
+			g_snooze_count = 0;  // and snooze
 			if (g_alarm_switch) {
 				menu_state = STATE_SET_ALARM;
 				show_set_alarm();
@@ -596,8 +608,10 @@ void main(void)
 		
 		// fixme: alarm should not be checked when setting time or alarm
 		// fixme: alarm will be missed if time goes by Second=0 while in menu
-		if (g_alarm_switch && rtc_check_alarm_cached(tm_, alarm_hour, alarm_min, alarm_sec))
+		if (g_alarm_switch && rtc_check_alarm_cached(tm_, alarm_hour, alarm_min, alarm_sec)) {
 			g_alarming = true;
+			g_snooze_count = 0;
+		}
 
 #ifdef FEATURE_AUTO_DIM			
 		if ((g_AutoDim) && (tm_->Minute == 0) && (tm_->Second == 0))  {  // Auto Dim enabled?
@@ -620,7 +634,7 @@ void main(void)
 			_delay_ms(2);
 #endif
 
-		_delay_ms(70);  // tuned so loop runs 10 times a second ?
+		_delay_ms(59);  // tuned so loop runs 10 times a second
 
 		}  // while (1)
 }  // main()
