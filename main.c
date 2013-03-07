@@ -435,10 +435,12 @@ void main(void)
 			if (buttons.b1_keydown || buttons.b1_keyup || buttons.b2_keydown || buttons.b2_keyup) {
 				buttons.b1_keyup = 0; // clear state
 				buttons.b2_keyup = 0; // clear state
-				buttons.b1_keydown = 0; // clear state
-				buttons.b2_keydown = 0; // clear state
 				g_alarming = false;
 				alarm(0);  // turn alarm off
+				while (buttons.b1_keydown || buttons.b2_keydown) {
+					_delay_ms(100);
+					get_button_state(&buttons);
+					}
 			}
 			else {
 				alarm(1);	  // turn alarm on (if not already on)
@@ -601,32 +603,6 @@ void main(void)
 				set_brightness(g_AutoDimLevel);
 			else if (tm_->Hour == g_AutoBrtHour)
 				set_brightness(g_AutoBrtLevel);
-		}
-#endif
-
-#ifdef FEATURE_BIGBEN
-		if ((g_BigBen) && (tm_->Second == 0))  {  // Big Ben enabled?
-			if (tm_->Minute == 15) {
-				ben1(2);
-			}
-			else if (tm_->Minute == 30) {
-				ben2(1); ben3(2);
-			}
-			else if (tm_->Minute == 45) {
-				ben4(1); ben5(1); ben1(2);
-			}
-			else if (tm_->Minute == 0) {
-				ben2(1); ben3(1); ben4(1); ben5(1);
-				uint8_t h = tm_->Hour;
-				if (!g_24h_clock) {
-					if (h>12)  h = h-12;
-					if (h==0)  h = 12;
-				}
-				for (uint8_t i = 0; i<h; i++) {
-					_delay_ms(500);
-					note(4,4,32);  // E(4)
-				}
-			}
 		}
 #endif
 
