@@ -16,6 +16,7 @@
 /* Updates by William B Phelps
 *todo:
  * ?
+ * 06mar13 stop alarm if switched off while sounding
  * 05mar13 add vars for birthday message
  * 04mar13 fix crash caused by display mpx timer int
  * 22feb13 10 step volume
@@ -429,12 +430,16 @@ void main(void)
 		if (g_alarming) {
 			display_time(clock_mode);  // read and display time (??)
 
-			// fixme: if keydown is detected here, wait for keyup and clear state
-			// this prevents going into the menu when disabling the alarm
-			if (buttons.b1_keydown || buttons.b1_keyup || buttons.b2_keydown || buttons.b2_keyup) {
+			// fixed: if keydown is detected here, wait for keyup and clear state
+			// this prevents going into the menu when disabling the alarm 
+			if ((!g_alarm_switch) || (buttons.b1_keydown || buttons.b1_keyup || buttons.b2_keydown || buttons.b2_keyup)) {
 				buttons.b1_keyup = 0; // clear state
 				buttons.b2_keyup = 0; // clear state
 				g_alarming = false;
+				while (buttons.b1_keydown || buttons.b2_keydown) {  // wait for button to be released
+					_delay_ms(100);
+					get_button_state(&buttons);
+				}
 			}
 			else {
 				alarm();	
