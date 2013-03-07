@@ -261,11 +261,16 @@ display_mode_t save_mode = MODE_NORMAL;  // for restoring mode after autodate di
 // Alarm switch changed interrupt
 ISR( PCINT2_vect )
 {
-	if ( (SWITCH_PIN & _BV(SWITCH_BIT)) == 0)
+	if ( (SWITCH_PIN & _BV(SWITCH_BIT)) == 0) {
 		g_alarm_switch = false;
+		if (g_alarming) {
+			g_alarming = false;  // cancel alarm
+			g_snooze_count = 0;  // and snooze
+		}
+	}
 	else {
 		g_alarm_switch = true;
-		}
+	}
 	g_show_special_cnt = 10;  // show alarm text for 1 second
 	if (get_digits() == 8)
 		clock_mode = MODE_ALARM_TIME;
@@ -433,10 +438,9 @@ void main(void)
 			g_snooze_count--;
 		if (g_alarming && (g_snooze_count==0)) {
 			display_time(clock_mode);  // read and display time (??)
-
 			// fixed: if keydown is detected here, wait for keyup and clear state
 			// this prevents going into the menu when disabling the alarm 
-			if ((!g_alarm_switch) || (buttons.b1_keydown || buttons.b1_keyup || buttons.b2_keydown || buttons.b2_keyup)) {
+			if (buttons.b1_keydown || buttons.b1_keyup || buttons.b2_keydown || buttons.b2_keyup) {
 				buttons.b1_keyup = 0; // clear state
 				buttons.b2_keyup = 0; // clear state
 //				g_alarming = false;
