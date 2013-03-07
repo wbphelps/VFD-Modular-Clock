@@ -441,7 +441,6 @@ void main(void)
 			g_snooze_count--;
 		if (g_alarming && (g_snooze_count==0)) {
 			display_time(clock_mode);  // read and display time (??)
-
 			// fixed: if keydown is detected here, wait for keyup and clear state
 			// this prevents going into the menu when disabling the alarm 
 			if (buttons.b1_keydown || buttons.b1_keyup || buttons.b2_keydown || buttons.b2_keyup) {
