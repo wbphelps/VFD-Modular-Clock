@@ -16,8 +16,8 @@
 /* Updates by William B Phelps
 *todo:
  * ?
- * 06mar13 stop alarm beeping if switch turned off
  * 06mar13 "reveille" sound for alarm
+ * 06mar13 stop alarm if switched off while sounding
  * 05mar13 add vars for birthday message
  * 04mar13 fix crash caused by display mpx timer int
  * 22feb13 10 step volume
@@ -432,8 +432,8 @@ void main(void)
 		if (g_alarming) {
 			display_time(clock_mode);  // read and display time (??)
 
-			// fixme: if keydown is detected here, wait for keyup and clear state
-			// this prevents going into the menu when disabling the alarm
+			// fixed: if keydown is detected here, wait for keyup and clear state
+			// this prevents going into the menu when disabling the alarm 
 			if ((!g_alarm_switch) || (buttons.b1_keydown || buttons.b1_keyup || buttons.b2_keydown || buttons.b2_keyup)) {
 				buttons.b1_keyup = 0; // clear state
 				buttons.b2_keyup = 0; // clear state
