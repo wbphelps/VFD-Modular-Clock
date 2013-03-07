@@ -50,9 +50,6 @@ const PROGMEM menu_item menuAdimLvl = {MENU_AUTODIM_LEVEL,menu_num+menu_isSub,"A
 const PROGMEM menu_item menuAbrtHr = {MENU_AUTOBRT_HOUR,menu_num+menu_isSub,"ABTH","ABTH",&g_AutoBrtHour,&b_AutoBrtHour,0,23,{NULL}};
 const PROGMEM menu_item menuAbrtLvl = {MENU_AUTOBRT_LEVEL,menu_num+menu_isSub,"ABTL","ABTL",&g_AutoBrtLevel,&b_AutoBrtLevel,1,10,{NULL}};
 #endif
-#ifdef FEATURE_BIGBEN
-const PROGMEM menu_item menuBigBen = {MENU_BIGBEN, menu_offOn,"BBEN","BBEN ",&g_BigBen,&b_BigBen,0,1,{NULL}};
-#endif
 #ifdef FEATURE_SET_DATE						
 const PROGMEM menu_item menuDate_ = {MENU_DATE,menu_hasSub,"DAT","DATE ",NULL,NULL,0,0,{NULL}};
 const PROGMEM menu_item menuYear = {MENU_DATEYEAR,menu_num+menu_isSub,"YEAR","YEAR",&g_dateyear,NULL,10,29,{NULL}};
@@ -108,9 +105,6 @@ const PROGMEM menu_item* PROGMEM const menuItems[] = {
 #endif
 #ifdef FEATURE_AUTO_DIM
 	&menuAdim_,	&menuAdim, &menuAdimHr, &menuAdimLvl, &menuAbrtHr, &menuAbrtLvl,
-#endif
-#ifdef FEATURE_BIGBEN
-	&menuBigBen,
 #endif
 	&menuBrt, 
 #ifdef FEATURE_SET_DATE
