@@ -92,6 +92,7 @@ void show_set_alarm(void);
 void show_alarm_text(void);
 void show_alarm_time(uint8_t hour, uint8_t min, uint8_t sec);
 void show_alarm_off(void);
+void show_snooze(void);
 
 void set_string(char* str);
 void set_scroll(char* str);
@@ -101,7 +102,7 @@ void set_char_at(char c, uint8_t offset);
 void set_brightness(uint8_t brightness);
 
 void set_blink(bool onOff);
-void flash_display(uint16_t ms);  // 11oct12/wbp
+void flash_display(void);  // 11oct12/wbp
 
 enum shield_t {
 	SHIELD_NONE = 0,

@@ -16,6 +16,7 @@
 /* Updates by William B Phelps
 *todo:
  * ?
+ * 06mar13 snooze feature
  * 06mar13 stop alarm if switched off while sounding
  * 05mar13 add vars for birthday message
  * 04mar13 fix crash caused by display mpx timer int
@@ -149,8 +150,10 @@ uint16_t g_autodisp = 50;  // how long to display date 5.0 seconds
 uint8_t g_autotime = 54;  // controls when to display date and when to display time in FLW mode
 
 uint8_t g_alarming = false; // alarm is going off
-uint16_t g_snooze_count = 0; // alarm snooze counter
-uint8_t g_snooze_time = 10; // snooze for 10 minutes
+uint16_t snooze_count = 0; // alarm snooze counter
+uint16_t alarm_timer = 0; // how long has alarm been beeping?
+uint16_t alarm_count, alarm_cycle, beep_count, beep_cycle;
+uint8_t g_snooze_time = 7; // snooze for 7 minutes
 uint8_t g_alarm_switch;
 uint16_t g_show_special_cnt = 0;  // display something special ("time", "alarm", etc)
 //time_t g_tNow = 0;  // current local date and time as time_t, with DST offset
@@ -158,9 +161,9 @@ tmElements_t* tm_; // current local date and time as TimeElements (pointer)
 //uint8_t alarm_hour = 0, alarm_min = 0, alarm_sec = 0;
 
 #ifdef FEATURE_MESSAGES
-char bdMsg[] = "Happy Birthday John";
-uint8_t bdMonth = 2;
-uint8_t bdDay = 28;
+char bdMsg[] = "Happy Birthday Deanna";
+uint8_t bdMonth = 11;
+uint8_t bdDay = 13;
 #endif
 
 extern enum shield_t shield;
@@ -265,7 +268,8 @@ ISR( PCINT2_vect )
 		g_alarm_switch = false;
 		if (g_alarming) {
 			g_alarming = false;  // cancel alarm
-			g_snooze_count = 0;  // and snooze
+			snooze_count = 0;  // and snooze
+			set_blink(false);
 		}
 	}
 	else {
@@ -283,6 +287,29 @@ uint8_t scroll_ctr;
 void display_time(display_mode_t mode)  // (wm)  runs approx every 100 ms
 {
 	static uint16_t counter = 0;
+
+	if (g_show_special_cnt>0) {
+		g_show_special_cnt--;
+		if (g_show_special_cnt == 0) {
+			switch (clock_mode) {
+				case MODE_ALARM_TEXT:
+					clock_mode = MODE_ALARM_TIME;
+					g_show_special_cnt = 10;
+					break;
+				case MODE_ALARM_TIME:
+					clock_mode = MODE_NORMAL;
+					break;
+#ifdef FEATURE_AUTO_DATE
+				case MODE_DATE:
+					clock_mode = save_mode;  // 11oct12/wbp
+					break;
+#endif							
+				default:
+					clock_mode = MODE_NORMAL;
+			}
+		}
+	}
+	
 #ifdef FEATURE_AUTO_DATE
 // display the date (or other message) once a minute just before the minute changes
 // the timing is tuned such that the clock shows the time again at 59 1/2 seconds
@@ -367,6 +394,17 @@ void display_time(display_mode_t mode)  // (wm)  runs approx every 100 ms
 	if (counter == 500) counter = 0;
 }
 
+void start_alarm(void)
+{
+	g_alarming = true;
+	snooze_count = 0;
+	alarm_cycle = 200;  // 20 second initial cycle
+	alarm_count = 0;  // reset cycle count
+	beep_cycle = 2;  // start with single beep
+	alarm_timer = 0;  // restart start alarm timer
+	set_blink(true);
+}
+
 void main(void) __attribute__ ((noreturn));
 
 void main(void)
@@ -434,24 +472,46 @@ void main(void)
 		get_button_state(&buttons);
 		// When alarming:
 		// any button press snoozes alarm
-		if (g_snooze_count>0)
-			g_snooze_count--;
-		if (g_alarming && (g_snooze_count==0)) {
-			display_time(clock_mode);  // read and display time (??)
+		if (snooze_count>0)
+			snooze_count--;
+		if (g_alarming) {
+			alarm_timer ++;
+			if (alarm_timer > 30*60*10) {  // alarm has been sounding for 30 minutes, turn it off
+				g_alarming = false;
+				snooze_count = 0;
+				set_blink(false);
+			}
+		}
+		if (g_alarming && (snooze_count==0)) {
+			display_time(clock_mode);  // read and display time
 			// fixed: if keydown is detected here, wait for keyup and clear state
 			// this prevents going into the menu when disabling the alarm 
 			if (buttons.b1_keydown || buttons.b1_keyup || buttons.b2_keydown || buttons.b2_keyup) {
 				buttons.b1_keyup = 0; // clear state
 				buttons.b2_keyup = 0; // clear state
-//				g_alarming = false;
-				g_snooze_count = g_snooze_time*60*10;  // start snooze timer
+				start_alarm();  // restart alarm sequence
+				snooze_count = g_snooze_time*60*10;  // start snooze timer
+				show_snooze();
+				_delay_ms(500);
 				while (buttons.b1_keydown || buttons.b2_keydown) {  // wait for button to be released
 					_delay_ms(100);
 					get_button_state(&buttons);
 				}
 			}
 			else {
-				alarm();
+				alarm_count++;
+				if (alarm_count > alarm_cycle) {  // once every alarm_cycle
+					beep_count = alarm_count = 0;  // restart cycle 
+					if (alarm_cycle>20)  // if more than 2 seconds
+						alarm_cycle = alarm_cycle - 20;  // shorten delay by 2 seconds
+					if (beep_cycle<20)
+						beep_cycle += 2;  // add another beep
+				}
+				beep_count++;
+				if (beep_count <= beep_cycle) {  // how many beeps this cycle?
+					if (beep_count%2)  // odd = beep
+						alarm();
+				}
 			}
 		}
 		// If both buttons are held:
@@ -459,7 +519,8 @@ void main(void)
 		//  * If the ALARM BUTTON SWITCH is on the RIGHT, go into set alarm mode
 		else if (menu_state == STATE_CLOCK && buttons.both_held) {
 			g_alarming = false;  // setting time or alarm, cancel alarm
-			g_snooze_count = 0;  // and snooze
+			snooze_count = 0;  // and snooze
+			set_blink(false);  // stop blinking
 			if (g_alarm_switch) {
 				menu_state = STATE_SET_ALARM;
 				show_set_alarm();
@@ -575,27 +636,6 @@ void main(void)
 			}
 		}
 		else {
-			if (g_show_special_cnt>0) {
-				g_show_special_cnt--;
-				if (g_show_special_cnt == 0) {
-					switch (clock_mode) {
-						case MODE_ALARM_TEXT:
-							clock_mode = MODE_ALARM_TIME;
-							g_show_special_cnt = 10;
-							break;
-						case MODE_ALARM_TIME:
-							clock_mode = MODE_NORMAL;
-							break;
-#ifdef FEATURE_AUTO_DATE
-						case MODE_DATE:
-							clock_mode = save_mode;  // 11oct12/wbp
-							break;
-#endif							
-						default:
-							clock_mode = MODE_NORMAL;
-					}
-				}
-			}
 
 			// read RTC & update display approx every 100ms  (wm)
 			display_time(clock_mode);  // read RTC and display time
@@ -605,16 +645,17 @@ void main(void)
 		// fixme: alarm should not be checked when setting time or alarm
 		// fixme: alarm will be missed if time goes by Second=0 while in menu
 		if (g_alarm_switch && rtc_check_alarm_cached(tm_, alarm_hour, alarm_min, alarm_sec)) {
-			g_alarming = true;
-			g_snooze_count = 0;
+			start_alarm();
 		}
 
 #ifdef FEATURE_AUTO_DIM			
 		if ((g_AutoDim) && (tm_->Minute == 0) && (tm_->Second == 0))  {  // Auto Dim enabled?
-			if (tm_->Hour == g_AutoDimHour)
+			if (tm_->Hour == g_AutoDimHour) {
 				set_brightness(g_AutoDimLevel);
-			else if (tm_->Hour == g_AutoBrtHour)
+			}
+			else if (tm_->Hour == g_AutoBrtHour) {
 				set_brightness(g_AutoBrtLevel);
+			}
 		}
 #endif
 
@@ -630,7 +671,7 @@ void main(void)
 			_delay_ms(2);
 #endif
 
-		_delay_ms(59);  // tuned so loop runs 10 times a second
+		_delay_ms(60);  // tuned so loop runs 10 times a second
 
 		}  // while (1)
 }  // main()

@@ -15,7 +15,7 @@
 
 #include <avr/io.h>
 #include <avr/interrupt.h>
-#include <util/delay.h>
+//#include <util/delay.h>
 #include <string.h>
 #include "display.h"
 #include "rtc.h"
@@ -47,7 +47,7 @@ uint8_t digits = 6;
 volatile uint8_t mpx_count = 8;  // wm
 volatile uint8_t mpx_limit = 8;
 volatile char data[10]; // Digit data (with a little extra room)
-//uint8_t us_counter = 0; // microsecond counter
+volatile uint8_t ms_counter = 0; // millisecond counter
 volatile uint8_t multiplex_counter = 0;
 #ifdef FEATURE_WmGPS
 volatile uint8_t gps_counter = 0;
@@ -63,11 +63,15 @@ extern uint8_t g_brightness;
 extern uint8_t g_gps_enabled;
 extern uint8_t g_gps_updating;
 extern uint8_t g_has_eeprom;
+extern uint8_t g_alarming;
 
-// variables for controlling display blink
-uint8_t blink;
-volatile uint16_t blink_counter = 0;
 volatile uint8_t display_on = true;
+// variables for controlling display blink
+volatile uint8_t blinking;
+volatile uint8_t blink_on = false;
+volatile uint16_t blink_counter = 0;
+uint16_t blink_on_time, blink_off_time;
+volatile uint16_t flash_counter = 0;
 
 // dots [bit 0~5]
 uint8_t dots = 0;
@@ -169,27 +173,40 @@ void display_init(uint8_t brightness)
 }
 
 // brightness value: 1 (low) - 10 (high)
+uint16_t _bright=0;
 void set_brightness(uint8_t brightness) {
 	g_brightness = brightness;  // update global so it stays consistent 16nov12/wbp
-uint16_t brt = brightness;
-	if (brt > 10) brt = 10;
-	brt = (10 - brt) * 25; // translate to PWM value
+  _bright = brightness;
+	if (_bright > 10) _bright = 10;
+	_bright = (10 - _bright) * 25; // translate to PWM value
 	// Brightness is set by setting the PWM duty cycle for the blank
 	// pin of the VFD driver.
 	// 255 = min brightness, 0 = max brightness 
-	OCR0A = brt;
+	OCR0A = _bright;
 }
 
 void set_blink(bool OnOff)
 {
-	blink = OnOff;
-	if (!blink) display_on = true;
+	blinking = OnOff;  // on time slightly longer than off time
+	blink_on_time = 550;  // was 576 ms
+	blink_off_time = 450;  // was 468 ms
+	if (g_alarming) {  // slower blink for alarm
+		blink_on_time = 1000;
+		blink_off_time = 1000;
+	}
+	if (!blinking) {
+		blink_on = true;
+		set_brightness(g_brightness); // restore brightness
+	}
 }
 
-void flash_display(uint16_t ms)  // this does not work but why???
+void flash_display(void)  // flash the display briefly
 {
 	display_on = false;
-	_delay_ms(ms);
+//	_delay_ms(ms);  // can't use _delay_ms because beep does
+	flash_counter = 200;  // 0.2 second
+	while (flash_counter>0)  // wait for a little time
+		;
 	display_on = true;
 }
 
@@ -233,42 +250,52 @@ volatile uint16_t button_counter = 0;
 
 // clock at 8 Mhz, prescaler set to div by 8.  1 click = 1us. Overflow every 256 us
 // 0.000256 secs (3906.25 times a second)
- 
 ISR(TIMER0_OVF_vect)
 {
-	// control blinking: on time is slightly longer than off time
-	if (blink) {
-		if (display_on) {
-			if (++blink_counter >= 0x900) {  // on time 0.5898 seconds
-				display_on = false;
-				blink_counter = 0;
-			}
-		}
-		else {  // !display_on
-			if (++blink_counter >= 0x750) {  // off time 0.4792 seconds
-				display_on = true;
-				blink_counter = 0;
-			}
-		}
-	}
-	
-	// button polling
-	if (++button_counter == 71) {
-		button_timer();
-		button_counter = 0;
-	}
-	
-	if (++interrupt_counter == mpx_count) {  // every 0.002048 seconds, 0.001024 for iv-17
+
+	if (++interrupt_counter == mpx_count) {  // display multiplex timer
 		interrupt_counter = 0;
 		display_multiplex();  
 	}
 
+	if (++ms_counter == 4) { // this section runs every 0.001024 second
+		ms_counter = 0;  
+
+		// control blinking
+		if (blinking) {
+			if (blink_on) {
+				if (++blink_counter >= blink_on_time) {  // on time 0.5898 seconds
+					blink_on = false;
+					blink_counter = 0;
+					if (g_alarming)
+						OCR0A = 185;  // dim
+					else
+						OCR0A = 255;  // virtually off
+				}
+			}
+			else {  // !blink_on
+				if (++blink_counter >= blink_off_time) {  // off time 0.4792 seconds
+					blink_on = true;
+					blink_counter = 0;
+					OCR0A = _bright;  // restore brightness
+				}
+			}
+		}
+
+		// button polling
+		if (++button_counter == 18) {  // ~ every 18 ms
+			button_counter = 0;
+			button_timer();
+		}
+
 #ifdef FEATURE_WmGPS
-	if (++gps_counter == 4) {  // every 0.001024 seconds
-		gps_counter = 0;
 		GPSread();  // check for data on the serial port
-	}
 #endif
+
+		if (flash_counter > 0)
+			flash_counter--;
+
+	}
 }
 
 // utility functions
@@ -797,6 +824,15 @@ void show_alarm_off(void)
 	}
 }
 
+void show_snooze(void)
+{
+	if (get_digits() == 8) {
+		set_string(" Snooze ");
+	}
+	else {
+		set_string("snze");
+	}
+}
 // Write 8 bits to HV5812 driver
 void write_vfd_8bit(uint8_t data)
 {

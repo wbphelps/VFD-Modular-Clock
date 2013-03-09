@@ -33,20 +33,26 @@ void piezo_init(void) {
 // TIMER1 interrupt rate = freq = 1000/freq ms
 // at low frequencies, time resolution is lower
 // example: at 100 hz, beep timer resolution is 10 ms
-void beep(uint16_t freq, uint8_t dur) {
+void set_freq(uint16_t freq) {
   // set the PWM output to match the desired frequency
   uint16_t top = F_CPU/8/freq;  // set Top
 	uint16_t cm = (top>>8) * (g_volume+2);  // set duty cycle based on volume
 	ICR1 = top;
 	OCR1A = cm;
   OCR1B = top - OCR1A;
+}
+
+void beep(uint16_t freq, uint8_t dur) {
+	set_freq(freq);
 
   // beep for the requested time
 	beep_counter = (long)dur * freq  / 1000;  // set delay counter
 	TCNT1 = 0; // Initialize counter
   TCCR1B |= _BV(CS11); // connect clock to turn speaker on
 	TIMSK1 |= (1<<TOIE1); // Enable Timer1 Overflow Interrupt
-	_delay_ms(dur);
+//	_delay_ms(dur);  // can't use _delay_ms here!
+	while (beep_counter>0)  // wait for beep to be done
+		;
 
 }
 
@@ -90,6 +96,6 @@ void tick(void) {
 
 void alarm(void)
 {
-	beep(500, 100);
+	beep(880, 100);
 }
 

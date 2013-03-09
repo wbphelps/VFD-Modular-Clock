@@ -202,7 +202,7 @@ void parseGPSdata(char *gpsBuffer) {
 						tNow = tNow + (long)g_TZ_minute * SECS_PER_HOUR;
 					rtc_set_time_t(tNow);  // set RTC from adjusted GPS time & date
 					if (shield != SHIELD_IV18)
-						flash_display(100);  // flash display to show GPS update 28oct12/wbp - shorter blink
+						flash_display();  // flash display to show GPS update 28oct12/wbp - shorter blink
 				}
 				else
 					g_gps_updating = false;
@@ -219,7 +219,7 @@ GPSerror2:
 		g_gps_time_errors++;  // increment error count
 GPSerror2a:
 		beep(1100,200);  // error signal - I'm leaving this in for now /wm
-		flash_display(200);  // flash display to show GPS error
+		flash_display();  // flash display to show GPS error
 		strcpy(gpsBuffer, "");  // wipe GPS buffer
 	}  // if "$GPRMC"
 }
