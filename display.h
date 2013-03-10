@@ -80,7 +80,8 @@ void detect_shield(void);
 void show_time(tmElements_t* te, bool _24h_clock, uint8_t mode);
 void show_time_setting(uint8_t hour, uint8_t min, uint8_t sec);
 void show_temp(int8_t t, uint8_t f);
-void show_date(tmElements_t* te, uint8_t region, uint8_t scroll);
+void scroll_date(tmElements_t* te, uint8_t region);
+void scroll_stop(void);
 void show_flw(tmElements_t* te);
 
 // functions for showing settings
@@ -94,9 +95,10 @@ void show_alarm_time(uint8_t hour, uint8_t min, uint8_t sec);
 void show_alarm_off(void);
 void show_snooze(void);
 
-void set_string(char* str);
-void set_scroll(char* str);
-void show_scroll(uint8_t index);
+void show_string(char* str);
+void show_scroll(char* str);
+uint8_t scrolling(void);
+
 void set_char_at(char c, uint8_t offset);
 
 void set_brightness(uint8_t brightness);

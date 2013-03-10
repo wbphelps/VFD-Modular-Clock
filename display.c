@@ -52,8 +52,14 @@ volatile uint8_t multiplex_counter = 0;
 #ifdef FEATURE_WmGPS
 volatile uint8_t gps_counter = 0;
 #endif
+
+volatile uint8_t _scrolling = false;
 static char sData[32];  // scroll message - 25 chars plus 8 spaces
 const uint8_t scroll_len = 32;
+volatile uint16_t scroll_counter = 0;
+const uint16_t scroll_time = 300;  // a little over 3 chars/second
+volatile uint8_t scroll_index = 0;
+uint8_t scroll_limit = 0;
 
 // globals from main.c
 extern uint8_t g_show_dots;
@@ -71,6 +77,7 @@ volatile uint8_t blinking;
 volatile uint8_t blink_on = false;
 volatile uint16_t blink_counter = 0;
 uint16_t blink_on_time, blink_off_time;
+
 volatile uint16_t flash_counter = 0;
 
 // dots [bit 0~5]
@@ -215,30 +222,56 @@ void display_multiplex(void)
 	uint8_t seg = 0;
 	clear_display();
 	if (display_on) {
-		switch (shield) {
-			case SHIELD_IV6:
-				write_vfd_iv6(multiplex_counter, calculate_segments_7(data[multiplex_counter]));
-				break;
-			case SHIELD_IV17:
-				write_vfd_iv17(multiplex_counter, calculate_segments_16(data[multiplex_counter]));
-				break;
-			case SHIELD_IV18:
-				if (multiplex_counter<8)
-					write_vfd_iv18(multiplex_counter, calculate_segments_7(data[7-multiplex_counter]));
-				else {  // show alarm switch & gps status
-					if (g_alarm_switch)
-						seg = (1<<7);
-					if (g_gps_updating)
-						seg |= (1<<6);
-					write_vfd_iv18(8, seg);
-				}
-				break;
-			case SHIELD_IV22:
-				write_vfd_iv22(multiplex_counter, calculate_segments_7(data[multiplex_counter]));
-				break;
-			default:
-				break;
-		}
+		if (_scrolling) 
+			switch (shield) {
+				case SHIELD_IV6:
+					write_vfd_iv6(multiplex_counter, calculate_segments_7(sData[multiplex_counter+scroll_index]));
+					break;
+				case SHIELD_IV17:
+					write_vfd_iv17(multiplex_counter, calculate_segments_16(sData[multiplex_counter+scroll_index]));
+					break;
+				case SHIELD_IV18:
+					if (multiplex_counter<8)
+						write_vfd_iv18(multiplex_counter, calculate_segments_7(sData[(7-multiplex_counter)+scroll_index]));
+					else {  // show alarm switch & gps status
+						if (g_alarm_switch)
+							seg = (1<<7);
+						if (g_gps_updating)
+							seg |= (1<<6);
+						write_vfd_iv18(8, seg);
+					}
+					break;
+				case SHIELD_IV22:
+					write_vfd_iv22(multiplex_counter, calculate_segments_7(sData[multiplex_counter+scroll_index]));
+					break;
+				default:
+					break;
+			}
+		else
+			switch (shield) {
+				case SHIELD_IV6:
+					write_vfd_iv6(multiplex_counter, calculate_segments_7(data[multiplex_counter]));
+					break;
+				case SHIELD_IV17:
+					write_vfd_iv17(multiplex_counter, calculate_segments_16(data[multiplex_counter]));
+					break;
+				case SHIELD_IV18:
+					if (multiplex_counter<8)
+						write_vfd_iv18(multiplex_counter, calculate_segments_7(data[7-multiplex_counter]));
+					else {  // show alarm switch & gps status
+						if (g_alarm_switch)
+							seg = (1<<7);
+						if (g_gps_updating)
+							seg |= (1<<6);
+						write_vfd_iv18(8, seg);
+					}
+					break;
+				case SHIELD_IV22:
+					write_vfd_iv22(multiplex_counter, calculate_segments_7(data[multiplex_counter]));
+					break;
+				default:
+					break;
+			}
 		multiplex_counter++;
 		if (multiplex_counter == mpx_limit) multiplex_counter = 0;
 	}
@@ -295,7 +328,28 @@ ISR(TIMER0_OVF_vect)
 		if (flash_counter > 0)
 			flash_counter--;
 
+		if (_scrolling) {
+			if (scroll_counter > 0)
+				scroll_counter--;
+			else {
+				scroll_index++;
+				scroll_counter = scroll_time;
+				if (scroll_index==scroll_limit)
+					_scrolling = false;
+			}
+		}
+
 	}
+}
+
+void scroll_stop(void)
+{
+	_scrolling = false;
+}
+
+uint8_t scrolling(void)
+{
+	return _scrolling;
 }
 
 // utility functions
@@ -594,7 +648,7 @@ void show_temp(int8_t t, uint8_t f)
 	}
 }
 
-void set_string(char* str)
+void show_string(char* str)
 {
 	if (!str) return;
 	dots = 0;
@@ -606,15 +660,23 @@ void set_string(char* str)
 	}
 }
 
-void set_scroll(char* str)
+void show_scroll(char* str)
 {
+	int i = 0;
 	if (!str) return;
 	dots = 0;
 	clr_sData();
-	for (int i = 0; i <25; i++) {
+	for (i = 0; i <25; i++) {
 		if (!*str) break;
 		sData[i] = *(str++);
 	}
+	scroll_limit = i+1;
+	scroll_index = 0;
+//	display_scroll(0);
+	scroll_counter = scroll_time;  // start scrolling
+	_scrolling = true;
+//	while (scrolling)  // wait for scrolling to finish
+//		;
 }
 
 // shows setting string
@@ -624,98 +686,78 @@ void show_setting_string(char* short_str, char* long_str, char* value, bool show
 	clr_data();
 	if (get_digits() == 8) {
 		if (strlen(value) > 0) {
-			set_string(short_str);
+			show_string(short_str);
 			print_strn(value, 4, 4);
 		}
 		else {
-			set_string(long_str);
+			show_string(long_str);
 		}
 	}
 	else if (get_digits() == 6) {
 		if (show_setting)
 			print_strn(value, 2, 4);
 		else
-			set_string(long_str);
+			show_string(long_str);
 	}
 	else {
 		if (show_setting)
 			print_strn(value, 0, 4);
 		else
-			set_string(short_str);
-	}
-}
-
-void show_scroll(uint8_t index)
-{
-	switch (digits) {
-	case 8:
-		for (uint8_t i = 0; i < 8; i++) {
-			data[i] = sData[(index+i)%scroll_len];
-		}
-		break;
-	case 6:
-		for (uint8_t i = 0; i < 6; i++) {
-			data[i] = sData[(index+i)%scroll_len];
-		}
-		break;
-	case 4:
-		for (uint8_t i = 0; i < 4; i++) {
-			data[i] = sData[(index+i)%scroll_len];
-		}
-		break;
+			show_string(short_str);
 	}
 }
 
 #ifdef FEATURE_AUTO_DATE
 // scroll the date - called every 100 ms
-void show_date(tmElements_t *te_, uint8_t region, uint8_t index)
+void scroll_date(tmElements_t *te_, uint8_t region)
 {
 	dots = 0;
 //	uint8_t di;
 	char sl;
-//	char d[18];
-//	sData[0] = sData[1] = ' ';
-	clr_sData();
+	char sd[13]; // = "  03/14/1947";
+	sd[0] = sd[1] = ' ';
+//	clr_sData();
 	if (shield == SHIELD_IV17)
 		sl = '/';
 	else
 		sl = '-';
 	switch (region) {
 		case 0:  // DMY
-			sData[2] = te_->Day / 10;
-			sData[3] = te_->Day % 10;
-			sData[4] = sData[7] = sl;
-			sData[5] = te_->Month / 10;
-			sData[6] = te_->Month % 10;
-			sData[8] = '2';
-			sData[9] = '0';
-			sData[10] = te_->Year / 10;
-			sData[11] = te_->Year % 10;
+			sd[2] = te_->Day / 10 + '0';
+			sd[3] = te_->Day % 10 + '0';
+			sd[4] = sd[7] = sl;
+			sd[5] = te_->Month / 10 + '0';
+			sd[6] = te_->Month % 10 + '0';
+			sd[8] = '2';
+			sd[9] = '0';
+			sd[10] = te_->Year / 10 + '0';
+			sd[11] = te_->Year % 10 + '0';
 			break;
 		case 1:  // MDY
-			sData[2] = te_->Month / 10;
-			sData[3] = te_->Month % 10;
-			sData[4] = sData[7] = sl;
-			sData[5] = te_->Day / 10;
-			sData[6] = te_->Day % 10;
-			sData[8] = '2';
-			sData[9] = '0';
-			sData[10] = te_->Year / 10;
-			sData[11] = te_->Year % 10;
+			sd[2] = te_->Month / 10 + '0';
+			sd[3] = te_->Month % 10 + '0';
+			sd[4] = sd[7] = sl;
+			sd[5] = te_->Day / 10 + '0';
+			sd[6] = te_->Day % 10 + '0';
+			sd[8] = '2';
+			sd[9] = '0';
+			sd[10] = te_->Year / 10 + '0';
+			sd[11] = te_->Year % 10 + '0';
 			break;
 		case 2:  // YMD
-			sData[2] = '2';
-			sData[3] = '0';
-			sData[4] = te_->Year / 10;
-			sData[5] = te_->Year % 10;
-			sData[6] = sData[9] = sl;
-			sData[7] = te_->Month / 10;
-			sData[8] = te_->Month % 10;
-			sData[10] = te_->Day / 10;
-			sData[11] = te_->Day % 10;
+			sd[2] = '2';
+			sd[3] = '0';
+			sd[4] = te_->Year / 10 + '0';
+			sd[5] = te_->Year % 10 + '0';
+			sd[6] = sd[9] = sl;
+			sd[7] = te_->Month / 10 + '0';
+			sd[8] = te_->Month % 10 + '0';
+			sd[10] = te_->Day / 10 + '0';
+			sd[11] = te_->Day % 10 + '0';
 			break;
 		}
-	show_scroll(index);
+	sd[12] = 0;  // null terminate
+	show_scroll(sd);
 }
 #endif
 
@@ -724,20 +766,20 @@ void show_setting_int(char* short_str, char* long_str, int value, bool show_sett
 //	data[0] = data[1] = data[2] = data[3] = data[4] = data[5] = data[6] = data[7] = ' ';
 	clr_data();
 	if (get_digits() == 8) {
-		set_string(long_str);
+		show_string(long_str);
 		print_digits(value, 6);
 	}
 	else if (get_digits() == 6) {
 		if (show_setting)
 			print_digits(value, 4);
 		else
-			set_string(long_str);
+			show_string(long_str);
 	}
 	else {  // 4 digits
 		if (show_setting)
 			print_digits(value, 2);
 		else
-			set_string(short_str);
+			show_string(short_str);
 	}
 }
 
@@ -769,31 +811,31 @@ void show_setting_int4(char* short_str, char* long_str, int value, bool show_set
 void show_set_time(void)
 {
 	if (get_digits() == 8)
-		set_string("Set Time");
+		show_string("Set Time");
 	else if (get_digits() == 6)
-		set_string(" Time ");
+		show_string(" Time ");
 	else
-		set_string("Time");
+		show_string("Time");
 }
 
 void show_set_alarm(void)
 {
 	if (get_digits() == 8)
-		set_string("Set Alrm");
+		show_string("Set Alrm");
 	else if (get_digits() == 6)
-		set_string("Alarm");
+		show_string("Alarm");
 	else
-		set_string("Alrm");
+		show_string("Alrm");
 }
 
 void show_alarm_text(void)
 {
 	if (get_digits() == 8)
-		set_string("Alarm   ");
+		show_string("Alarm   ");
 	else if (get_digits() == 6)
-		set_string("Alarm");
+		show_string("Alarm");
 	else
-		set_string("Alrm");
+		show_string("Alrm");
 }
 
 void show_alarm_time(uint8_t hour, uint8_t min, uint8_t sec)
@@ -817,20 +859,20 @@ void show_alarm_time(uint8_t hour, uint8_t min, uint8_t sec)
 void show_alarm_off(void)
 {
 	if (get_digits() == 8) {
-		set_string("Alrm off");
+		show_string("Alrm off");
 	}
 	else {
-		set_string(" off");
+		show_string(" off");
 	}
 }
 
 void show_snooze(void)
 {
 	if (get_digits() == 8) {
-		set_string(" Snooze ");
+		show_string(" Snooze ");
 	}
 	else {
-		set_string("snze");
+		show_string("snze");
 	}
 }
 // Write 8 bits to HV5812 driver
