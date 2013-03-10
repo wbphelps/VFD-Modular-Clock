@@ -86,6 +86,12 @@ uint8_t dots = 0;
 #define sbi(var, mask)   ((var) |= (uint8_t)(1 << mask))
 #define cbi(var, mask)   ((var) &= (uint8_t)~(1 << mask))
 
+unsigned long _millis = 0;
+
+unsigned long millis(void)
+{
+	return _millis;
+}
 int get_digits(void)
 {
 	return digits;
@@ -171,7 +177,7 @@ void display_init(uint8_t brightness)
 
 	// Inititalize Timer0 for PWM on PB2/OC0A (Blank)
 	// fast PWM, fastest clock, set OC0A (blank) on match
-	TCCR0A |= _BV(COM0A1) | _BV(WGM00) | _BV(WGM01);  
+	TCCR0A |= _BV(COM0A1) | _BV(WGM00) | _BV(WGM01);
 	TCCR0B |= (1<<CS01); // Set Prescaler to clk/8 : 1 click = 1us. CS21=1
 	TIMSK0 |= (1<<TOIE0); // Enable Overflow Interrupt Enable
 	TCNT0 = 0; // Initialize counter
@@ -278,7 +284,6 @@ void display_multiplex(void)
 }
 
 void button_timer(void);
-//uint8_t interrupt_counter = 0;  // moved to display.h
 volatile uint16_t button_counter = 0;
 
 // clock at 8 Mhz, prescaler set to div by 8.  1 click = 1us. Overflow every 256 us
@@ -292,7 +297,8 @@ ISR(TIMER0_OVF_vect)
 	}
 
 	if (++ms_counter == 4) { // this section runs every 0.001024 second
-		ms_counter = 0;  
+		ms_counter = 0;
+		_millis++;
 
 		// control blinking
 		if (blinking) {

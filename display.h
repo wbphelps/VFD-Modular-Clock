@@ -76,6 +76,8 @@ void display_init(uint8_t brightness);
 int get_digits(void);
 void detect_shield(void);
 
+unsigned long millis(void);
+
 // functions for showing current time, date, and temperature
 void show_time(tmElements_t* te, bool _24h_clock, uint8_t mode);
 void show_time_setting(uint8_t hour, uint8_t min, uint8_t sec);

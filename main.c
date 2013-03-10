@@ -16,8 +16,7 @@
 /* Updates by William B Phelps
 *todo:
  * ?
- * 07mar13 new timer driven scroll ... ???
- *  --> need some way to cancel scrolling if button pushed ???
+ * 07mar13 new timer driven scroll
  * 06mar13 snooze feature
  * 06mar13 stop alarm if switched off while sounding
  * 05mar13 add vars for birthday message
@@ -462,8 +461,11 @@ void main(void)
 	show_scroll(bdMsg);  // show birthday message
 	_delay_ms(500);
 #endif
+
+long t1, t2;
 	
 	while (1) {  // << ===================== MAIN LOOP ===================== >>
+		t1 = millis();
 		get_button_state(&buttons);
 		if (scrolling()) {
 			if (buttons.b1_keyup || buttons.b2_keyup) {  // either button down stops scrolling
@@ -671,7 +673,10 @@ void main(void)
 			_delay_ms(2);
 #endif
 
-		_delay_ms(60);  // tuned so loop runs 10 times a second
+//		_delay_ms((int)t2);  // tuned so loop runs 10 times a second
+		t2 = millis();
+		while ((t2-t1)<100)
+			t2 = millis();
 
 		}  // while (1)
 }  // main()
