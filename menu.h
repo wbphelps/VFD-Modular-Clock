@@ -15,6 +15,7 @@
 #ifndef MENU_H_
 #define MENU_H_
 #include <avr/pgmspace.h>
+#include "adst.h"
 
 #ifdef __FLASH
 #define FLASH __flash
@@ -127,7 +128,7 @@ int time_time;
 int time_alarm;
 
 #if defined FEATURE_WmGPS || defined FEATURE_AUTO_DST
-void setDSToffset(uint8_t mode);
+void setDSToffset(tmElements_t* tm_, uint8_t mode);
 #endif
 void menu_init(void);
 void menu(uint8_t n);

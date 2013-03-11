@@ -15,7 +15,6 @@
 
 #include <avr/io.h>
 #include <string.h>
-#include "Time.h"
 #include "adst.h"
 #include "globals.h"
 

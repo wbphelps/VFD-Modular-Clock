@@ -16,6 +16,8 @@
 /* Updates by William B Phelps
 *todo:
  * ? how often is date & time saved in ee?
+ * ? DST bug? time set back after reboot?
+ *
  * 10mar13 add millis()
  * 06mar13 snooze feature
  * 06mar13 stop alarm if switched off while sounding
@@ -354,7 +356,7 @@ void display_time(display_mode_t mode)  // (wm)  runs approx every 100 ms
 #endif
 #ifdef FEATURE_AUTO_DST
 		if (tm_->Second%10 == 0)  // check DST Offset every 10 seconds (60?)
-			setDSToffset(g_DST_mode); 
+			setDSToffset(tm_, g_DST_mode); 
 		if ((tm_->Hour == 0) && (tm_->Minute == 0) && (tm_->Second == 0)) {  // MIDNIGHT!
 			g_DST_updated = false;
 			if (g_DST_mode)

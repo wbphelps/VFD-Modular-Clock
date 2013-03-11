@@ -12,6 +12,7 @@
  * PARTICULAR PURPOSE.  See the GNU General Public License for more details.
  *
  */
+#include "Time.h"
 
 #ifndef ADST_H_
 #define ADST_H_
