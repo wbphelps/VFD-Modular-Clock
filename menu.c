@@ -138,15 +138,16 @@ const PROGMEM menu_item* PROGMEM const menuItems[] = {
 
 static uint8_t menu_disabled[MENU_END];
 
-extern tmElements_t* tm_; // current local date and time as TimeElements (pointer)
 
 #if defined FEATURE_WmGPS || defined FEATURE_AUTO_DST
 void setDSToffset(uint8_t mode) {
+	tmElements_t* tm_; // current local date and time as TimeElements (pointer)
 	int8_t adjOffset;
 	uint8_t newOffset;
 #ifdef FEATURE_AUTO_DST
 	if (mode == 2) {  // Auto DST
 		if (g_DST_updated) return;  // already done it once today
+		tm_ = rtc_get_time();
 		if (tm_ == NULL) return;  // safet check
 		newOffset = getDSToffset(tm_, g_DST_Rules);  // get current DST offset based on DST Rules
 	}
@@ -171,6 +172,7 @@ void setDSToffset(uint8_t mode) {
 
 #ifdef FEATURE_SET_DATE
 void set_date(uint8_t yy, uint8_t mm, uint8_t dd) {
+	tmElements_t* tm_; // current local date and time as TimeElements (pointer)
 	tm_ = rtc_get_time();  // refresh current time 
 	tm_->Year = yy;
 	tm_->Month = mm;
@@ -186,6 +188,7 @@ void set_date(uint8_t yy, uint8_t mm, uint8_t dd) {
 
 void menu_action(menu_item * menuPtr)
 {
+	tmElements_t* tm_; // current local date and time as TimeElements (pointer)
 	switch(menuPtr->menuNum) {
 		case MENU_ALARM:
 			menu_state = STATE_SET_ALARM;
@@ -216,6 +219,7 @@ void menu_action(menu_item * menuPtr)
 		case MENU_RULE8:
 		case MENU_DST_ENABLE:
 			g_DST_updated = false;  // allow automatic DST adjustment again
+			tm_ = rtc_get_time();  // refresh current time 
 			DSTinit(tm_, g_DST_Rules);  // re-compute DST start, end for new data
 			setDSToffset(g_DST_mode);
 			break;

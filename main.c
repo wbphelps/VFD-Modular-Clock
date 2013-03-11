@@ -15,7 +15,8 @@
 
 /* Updates by William B Phelps
 *todo:
- * ?
+ * ? how often is date & time saved in ee?
+ * 10mar13 add millis()
  * 06mar13 snooze feature
  * 06mar13 stop alarm if switched off while sounding
  * 05mar13 add vars for birthday message
@@ -145,9 +146,9 @@
 #define MENU_TIMEOUT 20  // 2.0 seconds
 
 #ifdef FEATURE_AUTO_DATE
-uint16_t g_autodisp = 50;  // how long to display date 5.0 seconds
+uint16_t g_autodisp = 45;  // how long to display date in seconds/10
 #endif
-uint8_t g_autotime = 54;  // controls when to display date and when to display time in FLW mode
+uint8_t g_autotime = 55;  // controls when to display date and when to display time in FLW mode
 
 uint8_t g_alarming = false; // alarm is going off
 uint16_t snooze_count = 0; // alarm snooze counter
@@ -283,54 +284,44 @@ ISR( PCINT2_vect )
 }
 
 uint8_t scroll_ctr;
+uint8_t scroll_rate;
+void display_date(void)  // display (scroll) the date or a special holiday messaage
+{
+#ifdef FEATURE_MESSAGES
+	g_show_special_cnt = g_autodisp;  // show date for g_autodisp ms
+	scroll_rate = 32;
+	clock_mode = MODE_DATE;
+	scroll_ctr = 0;
+	if ((tm_->Month == 1) && (tm_->Day == 1)) {
+		scroll_rate = 24;
+		set_scroll("Happy New Year");
+		}
+	else if ((tm_->Month == 12) && (tm_->Day == 25)) {
+		scroll_rate = 24;
+		set_scroll("Merry Christmas");
+		}
+// uncomment this block to display a message on someone's birthday
+	else if ((tm_->Month == bdMonth) && (tm_->Day == bdDay)) {
+		scroll_rate = 22;
+		g_show_special_cnt = g_autodisp+05;  // add 1/2 second
+		set_scroll(bdMsg);
+		}
+	else 
+#endif
+		show_date(tm_, g_Region, 0);  // show date from last rtc_get_time() call
+}
 
 void display_time(display_mode_t mode)  // (wm)  runs approx every 100 ms
 {
 	static uint16_t counter = 0;
-
-	if (g_show_special_cnt>0) {
-		g_show_special_cnt--;
-		if (g_show_special_cnt == 0) {
-			switch (clock_mode) {
-				case MODE_ALARM_TEXT:
-					clock_mode = MODE_ALARM_TIME;
-					g_show_special_cnt = 10;
-					break;
-				case MODE_ALARM_TIME:
-					clock_mode = MODE_NORMAL;
-					break;
-#ifdef FEATURE_AUTO_DATE
-				case MODE_DATE:
-					clock_mode = save_mode;  // 11oct12/wbp
-					break;
-#endif							
-				default:
-					clock_mode = MODE_NORMAL;
-			}
-		}
-	}
 	
 #ifdef FEATURE_AUTO_DATE
 // display the date (or other message) once a minute just before the minute changes
 // the timing is tuned such that the clock shows the time again at 59 1/2 seconds
+// scroll_ctr incremented 10 times a second = 100 ms / click
+// s*10/15 = 150 ms / char
 	if (mode == MODE_DATE) {
-#ifdef FEATURE_MESSAGES
-		if ((tm_->Month == 1) && (tm_->Day == 1)) {
-			set_scroll("Happy New Year");
-			show_scroll(scroll_ctr++*10/24);  // show BD message
-			}
-		else if ((tm_->Month == 12) && (tm_->Day == 25)) {
-			set_scroll("Merry Christmas");
-			show_scroll(scroll_ctr++*10/24);  // show BD message
-			}
-// uncomment this block to display a message on someone's birthday
-		else if ((tm_->Month == bdMonth) && (tm_->Day == bdDay)) {
-			set_scroll(bdMsg);
-			show_scroll(scroll_ctr++*10/24);  // show BD message
-			}
-		else
-#endif		
-			show_date(tm_, g_Region, (scroll_ctr++) * 10 / 38);  // show date from last rtc_get_time() call
+		show_scroll(++scroll_ctr*10/scroll_rate);  // show date or special message
 	}
 	else
 #endif	
@@ -373,9 +364,7 @@ void display_time(display_mode_t mode)  // (wm)  runs approx every 100 ms
 #ifdef FEATURE_AUTO_DATE
 		if (g_AutoDate && (tm_->Second == g_autotime) ) { 
 			save_mode = clock_mode;  // save current mode
-			clock_mode = MODE_DATE;  // display date now
-			g_show_special_cnt = g_autodisp;  // show date for g_autodisp ms
-			scroll_ctr = 0;  // reset scroll position
+			display_date();
 			}
 		else
 #endif		
@@ -392,6 +381,29 @@ void display_time(display_mode_t mode)  // (wm)  runs approx every 100 ms
 	}
 	counter++;
 	if (counter == 500) counter = 0;
+
+	if (g_show_special_cnt>0) {
+		g_show_special_cnt--;
+		if (g_show_special_cnt == 0) {
+			switch (clock_mode) {
+				case MODE_ALARM_TEXT:
+					clock_mode = MODE_ALARM_TIME;
+					g_show_special_cnt = 10;
+					break;
+				case MODE_ALARM_TIME:
+					clock_mode = MODE_NORMAL;
+					break;
+#ifdef FEATURE_AUTO_DATE
+				case MODE_DATE:
+					clock_mode = save_mode;  // 11oct12/wbp
+					break;
+#endif							
+				default:
+					clock_mode = MODE_NORMAL;
+			}
+		}
+	}
+
 }
 
 void start_alarm(void)
@@ -463,12 +475,14 @@ void main(void)
 	set_scroll(bdMsg);
 	for (scroll_ctr = 0; scroll_ctr<=strlen(bdMsg); scroll_ctr++) {
 		show_scroll(scroll_ctr);
-		_delay_ms(200);
+		_delay_ms(150);
 	}
 	_delay_ms(500);
 #endif
-	
+
+long t1, t2;  // for timing in main loop
 	while (1) {  // << ===================== MAIN LOOP ===================== >>
+		t1 = millis();
 		get_button_state(&buttons);
 		// When alarming:
 		// any button press snoozes alarm
@@ -608,8 +622,8 @@ void main(void)
 
 #ifdef FEATURE_AUTO_DATE
 			if (clock_mode == MODE_DATE) {
-				g_show_special_cnt = g_autodisp;  // show date for g_autodisp ms
-				scroll_ctr = 0;  // reset scroll position
+				save_mode = MODE_NORMAL;  // go back to normal time display when done
+				display_date();
 			}
 #endif			
 			if (clock_mode == MODE_LAST) clock_mode = MODE_NORMAL;
@@ -661,17 +675,15 @@ void main(void)
 
 #ifdef FEATURE_WmGPS
 		if (g_gps_enabled) {
-			if (gpsDataReady()) {
+			if (gpsDataReady())
 				parseGPSdata(gpsNMEA());  // get the GPS serial stream and possibly update the clock 
-				}
-			else
-				_delay_ms(2);
 			}
-		else
-			_delay_ms(2);
 #endif
 
-		_delay_ms(60);  // tuned so loop runs 10 times a second
+//		_delay_ms(60);  // tuned so loop runs 10 times a second
+		t2 = millis();
+		while ((t2-t1)<100)
+			t2 = millis();
 
 		}  // while (1)
 }  // main()

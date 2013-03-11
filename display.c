@@ -84,6 +84,12 @@ int get_digits(void)
 	return digits;
 }
 
+volatile unsigned long _millis = 0;
+unsigned long millis(void)
+{
+	return _millis;
+}
+
 // detect which shield is connected
 void detect_shield(void)
 {
@@ -259,7 +265,8 @@ ISR(TIMER0_OVF_vect)
 	}
 
 	if (++ms_counter == 4) { // this section runs every 0.001024 second
-		ms_counter = 0;  
+		ms_counter = 0;
+		_millis++;
 
 		// control blinking
 		if (blinking) {

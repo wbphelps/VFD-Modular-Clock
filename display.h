@@ -74,6 +74,7 @@ volatile uint8_t interrupt_counter;
 
 void display_init(uint8_t brightness);
 int get_digits(void);
+unsigned long millis(void);
 void detect_shield(void);
 
 // functions for showing current time, date, and temperature
