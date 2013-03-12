@@ -15,7 +15,6 @@
 
 /* Updates by William B Phelps
 *todo:
- * ? how often is date & time saved in ee?
  * ? DST bug? time set back after reboot?
  *
  * 10mar13 add millis()
@@ -164,9 +163,12 @@ tmElements_t* tm_; // current local date and time as TimeElements (pointer)
 //uint8_t alarm_hour = 0, alarm_min = 0, alarm_sec = 0;
 
 #ifdef FEATURE_MESSAGES
-char bdMsg[] = "Happy Birthday Deanna";
-uint8_t bdMonth = 11;
-uint8_t bdDay = 13;
+//char bdMsg[] = "Happy Birthday John";
+//uint8_t bdMonth = 2;
+//uint8_t bdDay = 28;
+char bdMsg[] = "Happy Birthday William";
+uint8_t bdMonth = 3;
+uint8_t bdDay = 14;
 #endif
 
 extern enum shield_t shield;

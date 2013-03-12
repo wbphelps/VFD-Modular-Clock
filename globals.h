@@ -31,11 +31,11 @@ extern uint8_t b_show_temp;
 extern uint8_t b_show_dots;
 extern uint8_t b_brightness;
 extern uint8_t b_volume;
-#ifdef FEATURE_SET_DATE
-extern uint8_t b_dateyear;
-extern uint8_t b_datemonth;
-extern uint8_t b_dateday;
-#endif
+//#ifdef FEATURE_SET_DATE  // not used, date & time stored in RTC
+//extern uint8_t b_dateyear;
+//extern uint8_t b_datemonth;
+//extern uint8_t b_dateday;
+//#endif
 #ifdef FEATURE_FLW
 extern uint8_t b_flw_enabled;
 #endif
