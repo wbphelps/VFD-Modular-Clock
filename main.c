@@ -16,6 +16,7 @@
 /* Updates by William B Phelps
 *todo:
  * ?
+ * 10mar13 add millis()
  * 07mar13 new timer driven scroll
  * 06mar13 snooze feature
  * 06mar13 stop alarm if switched off while sounding
@@ -162,9 +163,12 @@ tmElements_t* tm_; // current local date and time as TimeElements (pointer)
 //uint8_t alarm_hour = 0, alarm_min = 0, alarm_sec = 0;
 
 #ifdef FEATURE_MESSAGES
-char bdMsg[] = "Happy Birthday Deanna";
-uint8_t bdMonth = 11;
-uint8_t bdDay = 13;
+//uint8_t bdMonth = 2;
+//uint8_t bdDay = 28;
+//char bdMsg[] = "Happy Birthday John";
+uint8_t bdMonth = 3;
+uint8_t bdDay = 14;
+char bdMsg[] = "Happy Birthday William";
 #endif
 
 extern enum shield_t shield;
@@ -213,7 +217,9 @@ void initialize(void)
 	display_init(g_brightness);
 	
 	g_alarm_switch = get_alarm_switch();
-	
+
+	tm_ = rtc_get_time();
+
 #ifdef FEATURE_FLW
 	g_has_eeprom = has_eeprom();
 //	if (!g_has_eeprom)  beep(440,200);  // debug
@@ -289,19 +295,24 @@ void display_date(void)
 // display the date (or other message) once a minute just before the minute changes
 // the timing is tuned such that the clock shows the time again at 59 1/2 seconds
 #ifdef FEATURE_MESSAGES
+	clock_mode = MODE_DATE;  // displaying date now
+	show_string(" ");  // blank normal time display
+	set_scroll(300);  // display date at 3 cps
 	if ((tm_->Month == 1) && (tm_->Day == 1)) {
 		show_scroll("Happy New Year");
+		set_scroll(250);  // 4 cps
 	}
 	else if ((tm_->Month == 12) && (tm_->Day == 25)) {
 		show_scroll("Merry Christmas");
+		set_scroll(250);  // 4 cps
 	}
 // uncomment this block to display a message on someone's birthday
 	else if ((tm_->Month == bdMonth) && (tm_->Day == bdDay)) {
 		show_scroll(bdMsg);  // show birthday message
+		set_scroll(225);  // 4.5 cps
 		}
 	else
 #endif
-		show_string(" ");  // blank normal time display
 		scroll_date(tm_, g_Region);  // show date from last rtc_get_time() call
 }
 #endif
@@ -339,7 +350,7 @@ void display_time(void)  // (wm)  runs approx every 100 ms
 #endif
 #ifdef FEATURE_AUTO_DST
 		if (tm_->Second%10 == 0)  // check DST Offset every 10 seconds (60?)
-			setDSToffset(g_DST_mode); 
+			setDSToffset(tm_, g_DST_mode); 
 		if ((tm_->Hour == 0) && (tm_->Minute == 0) && (tm_->Second == 0)) {  // MIDNIGHT!
 			g_DST_updated = false;
 			if (g_DST_mode)
@@ -348,13 +359,12 @@ void display_time(void)  // (wm)  runs approx every 100 ms
 #endif
 #ifdef FEATURE_AUTO_DATE
 		if (clock_mode == MODE_DATE) {
-			if (!scrolling())
-				clock_mode = save_mode;
+			if (!scrolling())  // Still scrolling date or message?
+				clock_mode = save_mode;  // no, restore previous mode
 		}
 		else if (g_AutoDate && (tm_->Second == g_autotime) ) { 
 			save_mode = clock_mode;  // save current mode
 			display_date();  // show date or other message
-			clock_mode = MODE_DATE;  // displaying date now
 		}
 #endif		
 #ifdef FEATURE_FLW
@@ -475,7 +485,6 @@ long t1, t2;
 		}
 		if (snooze_count>0)
 			snooze_count--;
-		// When alarming: any button press snoozes alarm
 		if (g_alarming) {
 			alarm_timer ++;
 			if (alarm_timer > 30*60*10) {  // alarm has been sounding for 30 minutes, turn it off
@@ -484,6 +493,7 @@ long t1, t2;
 				set_blink(false);
 			}
 		}
+		// When alarming: any button press snoozes alarm
 		if (g_alarming && (snooze_count==0)) {
 			display_time();  // read and display time
 			// fixed: if keydown is detected here, wait for keyup and clear state
@@ -673,7 +683,7 @@ long t1, t2;
 			_delay_ms(2);
 #endif
 
-//		_delay_ms((int)t2);  // tuned so loop runs 10 times a second
+//		_delay_ms(60);  // tuned so loop runs 10 times a second
 		t2 = millis();
 		while ((t2-t1)<100)
 			t2 = millis();

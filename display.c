@@ -57,7 +57,7 @@ volatile uint8_t _scrolling = false;
 static char sData[32];  // scroll message - 25 chars plus 8 spaces
 const uint8_t scroll_len = 32;
 volatile uint16_t scroll_counter = 0;
-const uint16_t scroll_time = 300;  // a little over 3 chars/second
+uint16_t scroll_time = 300;  // a little over 3 chars/second
 volatile uint8_t scroll_index = 0;
 uint8_t scroll_limit = 0;
 
@@ -356,6 +356,11 @@ void scroll_stop(void)
 uint8_t scrolling(void)
 {
 	return _scrolling;
+}
+
+void set_scroll(uint16_t speed)
+{
+	scroll_time = speed;
 }
 
 // utility functions

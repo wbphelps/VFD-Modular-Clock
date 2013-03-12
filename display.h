@@ -100,6 +100,7 @@ void show_snooze(void);
 void show_string(char* str);
 void show_scroll(char* str);
 uint8_t scrolling(void);
+void set_scroll(uint16_t speed);
 
 void set_char_at(char c, uint8_t offset);
 
