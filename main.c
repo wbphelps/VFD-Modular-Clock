@@ -472,7 +472,7 @@ void main(void)
 	_delay_ms(500);
 #endif
 
-long t1, t2;
+unsigned long t1, t2;
 	
 	while (1) {  // << ===================== MAIN LOOP ===================== >>
 		t1 = millis();
