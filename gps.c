@@ -23,6 +23,7 @@
 #include "piezo.h"
 #include "rtc.h"
 #include "Time.h"
+#include "xstrtok.h"
 
 // globals from main.c
 extern enum shield_t shield;
@@ -138,9 +139,14 @@ void parseGPSdata(char *gpsBuffer) {
     gpsCheck2 = atoh(*(ptr+1)) * 16 + atoh(*(ptr+2));
 		if (gpsCheck1 == gpsCheck2) {  // if checksums match, process the data
 			//beep(1000, 1);
-			ptr = strtok(gpsBuffer, ",*\r");  // parse $GPRMC
+			// set up data structure for xstrtok()
+      XSTRTOK pTok; // structure for xstrtok()
+			pTok.str2parse = &gpsBuffer[1];  // string to parse
+			pTok.delim = ",*\r";  // delimiters
+//			pTok.quote = false;  // not interested in quote handling
+			ptr = xstrtok(&pTok);  // parse $GPRMC
 			if (ptr == NULL) goto GPSerror1;
-			ptr = strtok(NULL, ",*\r");  // Time including fraction hhmmss.fff
+			ptr = xstrtok(&pTok);  // Time including fraction hhmmss.fff
 			if (ptr == NULL) goto GPSerror1;
 			if ((strlen(ptr) < 6) || (strlen(ptr) > 10)) goto GPSerror1;  // check time length
 //			strncpy(gpsTime, ptr, 10);  // copy time string hhmmss
@@ -148,30 +154,30 @@ void parseGPSdata(char *gpsBuffer) {
 			tm.Hour = tmp / 10000;
 			tm.Minute = (tmp / 100) % 100;
 			tm.Second = tmp % 100;
-			ptr = strtok(NULL, ",*\r");  // Status
+			ptr = xstrtok(&pTok);  // Status
 			if (ptr == NULL) goto GPSerror1;
 			gpsFixStat = ptr[0];
 			if (gpsFixStat == 'A') {  // if data valid, parse time & date
 				gpsTimeout = 0;  // reset gps timeout counter
-				ptr = strtok(NULL, ",*\r");  // Latitude including fraction
+				ptr = xstrtok(&pTok);  // Latitude including fraction
 				if (ptr == NULL) goto GPSerror1;
 //				strncpy(gpsLat, ptr, 7);  // copy Latitude ddmm.ff
-				ptr = strtok(NULL, ",*\r");  // Latitude N/S
+				ptr = xstrtok(&pTok);  // Latitude N/S
 				if (ptr == NULL) goto GPSerror1;
 //				gpsLatH = ptr[0];
-				ptr = strtok(NULL, ",*\r");  // Longitude including fraction hhmm.ff
+				ptr = xstrtok(&pTok);  // Longitude including fraction hhmm.ff
 				if (ptr == NULL) goto GPSerror1;
 //				strncpy(gpsLong, ptr, 7);
-				ptr = strtok(NULL, ",*\r");  // Longitude Hemisphere
+				ptr = xstrtok(&pTok);  // Longitude Hemisphere
 				if (ptr == NULL) goto GPSerror1;
 //				gpsLongH = ptr[0];
-				ptr = strtok(NULL, ",*\r");  // Ground speed 000.5
+				ptr = xstrtok(&pTok);  // Ground speed 000.5
 				if (ptr == NULL) goto GPSerror1;
 //				strncpy(gpsSpeed, ptr, 5);
-				ptr = strtok(NULL, ",*\r");  // Track angle (course) 054.7
+				ptr = xstrtok(&pTok);  // Track angle (course) 054.7
 				if (ptr == NULL) goto GPSerror1;
 //				strncpy(gpsCourse, ptr, 5);
-				ptr = strtok(NULL, ",*\r");  // Date ddmmyy
+				ptr = xstrtok(&pTok);  // Date ddmmyy
 				if (ptr == NULL) goto GPSerror1;
 //				strncpy(gpsDate, ptr, 6);
 				if (strlen(ptr) != 6) goto GPSerror1;  // check date length
@@ -179,10 +185,10 @@ void parseGPSdata(char *gpsBuffer) {
 				tm.Day = tmp / 10000;
 				tm.Month = (tmp / 100) % 100;
 				tm.Year = tmp % 100;
-				ptr = strtok(NULL, "*\r");  // magnetic variation & dir
+				ptr = xstrtok(&pTok);  // magnetic variation & dir
 				if (ptr == NULL) goto GPSerror1;
 				if (ptr == NULL) goto GPSerror1;
-				ptr = strtok(NULL, ",*\r");  // Checksum
+				ptr = xstrtok(&pTok);  // Checksum
 				if (ptr == NULL) goto GPSerror1;
 //				strncpy(gpsCKS, ptr, 2);  // save checksum chars
 				

@@ -40,7 +40,8 @@ SRCS = main.c \
 	rtc.c \
 	piezo.c \
 	Time.c \
-	flw.c
+	flw.c \
+	xstrtok.c
 
 # Default values
 FEATURE_LOWERCASE ?= YES
