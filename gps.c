@@ -31,6 +31,7 @@ extern enum shield_t shield;
 //volatile uint8_t gpsEnabled = 0;
 #define gpsTimeoutLimit 5  // 5 seconds until we display the "no gps" message
 uint16_t gpsTimeout;  // how long since we received valid GPS data?
+static tmElements_t tm_last = {0, 0, 0, 0, 0, 0, 0};
 
 void GPSread(void) 
 {
@@ -195,8 +196,16 @@ void parseGPSdata(char *gpsBuffer) {
 				tm.Year = y2kYearToTm(tm.Year);  // convert yy year to (yyyy-1970) (add 30)
 				tNow = makeTime(&tm);  // convert to time_t
 				
-				if ((tGPSupdate>0) && (abs(tNow-tGPSupdate)>SECS_PER_DAY))  goto GPSerror2;  // GPS time jumped more than 1 day
-
+//				if ((tGPSupdate>0) && (abs(tNow-tGPSupdate)>SECS_PER_DAY))  goto GPSerror2;  // GPS time jumped more than 1 day
+				// only accept GPS data if 2 messages in sequence have same Year, Month, Day, Hour, and Minute
+				// this catches corrupt message strings, but also skips a few messages
+				// the GPS emits a GPRMC message once a second, so skipping a message now and then is fine
+				if ((tm.Year != tm_last.Year) || (tm.Month != tm_last.Month) || (tm.Day != tm_last.Day) || (tm.Hour != tm_last.Hour) || (tm.Minute != tm_last.Minute)) {
+					tm_last = tm;
+					goto GPSerror2;  // ignore quietly, in case it's just a normal difference
+				}
+				tm_last = tm;
+				
 				if ((tm.Second == 0) || ((tNow - tGPSupdate)>=60)) {  // update RTC once/minute or if it's been 60 seconds
 					//beep(1000, 1);  // debugging
 					g_gps_updating = true;
@@ -220,11 +229,12 @@ void parseGPSdata(char *gpsBuffer) {
 		return;
 GPSerror1:
 		g_gps_parse_errors++;  // increment error count
+		beep(1100,200);  // error signal - I'm leaving this in for now /wm
 		goto GPSerror2a;
 GPSerror2:
 		g_gps_time_errors++;  // increment error count
 GPSerror2a:
-		beep(1100,200);  // error signal - I'm leaving this in for now /wm
+//		beep(1100,200);  // error signal - I'm leaving this in for now /wm
 		flash_display();  // flash display to show GPS error
 		strcpy(gpsBuffer, "");  // wipe GPS buffer
 	}  // if "$GPRMC"
