@@ -1,6 +1,6 @@
 /*
  * Menu for VFD Modular Clock
- * (C) 2012 William B Phelps
+ * (C) 2012-2013 William B Phelps
  *
  * This program is free software; you can redistribute it and/or modify it under the
  * terms of the GNU General Public License as published by the Free Software
@@ -143,7 +143,7 @@ void setDSToffset(tmElements_t* tm_, uint8_t mode) {
 	int8_t adjOffset;
 	uint8_t newOffset;
 #ifdef FEATURE_AUTO_DST
-	if (mode == 2) {  // Auto DST
+	if (mode == DST_Auto) {  // Auto DST
 		if (g_DST_updated) return;  // already done it once today
 		if (tm_ == NULL) return;  // safety check
 		newOffset = getDSToffset(tm_, g_DST_Rules);  // get current DST offset based on DST Rules

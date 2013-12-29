@@ -1,6 +1,6 @@
 /*
  * VFD Modular Clock
- * (C) 2011 Akafugu Corporation
+ * (C) 2011-2013 Akafugu Corporation
  *
  * This program is free software; you can redistribute it and/or modify it under the
  * terms of the GNU General Public License as published by the Free Software

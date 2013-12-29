@@ -1,6 +1,6 @@
 /*
  * GPS support for VFD Modular Clock
- * (C) 2012 William B Phelps
+ * (C) 2012-2013 William B Phelps
  *
  * This program is free software; you can redistribute it and/or modify it under the
  * terms of the GNU General Public License as published by the Free Software
@@ -177,28 +177,6 @@ void parseGPSdata(char *gpsBuffer) {
 			gpsFixStat = ptr[0];  // fix status
 			if (gpsFixStat == 'A') {  // if data valid, parse time & date
 				gpsTimeout = 0;  // reset gps timeout counter
-//				ptr = ntok(ptr);  // Find the next token - Latitude including fraction
-//				if (ptr == NULL) goto ParseError;
-//				strncpy(gpsLat, ptr, 7);  // copy Latitude ddmm.ff
-//				ptr = ntok(ptr);  // Find the next token - Latitude N/S
-//				if (ptr == NULL) goto ParseError;
-//				gpsLatH = ptr[0];
-//				ptr = ntok(ptr);  // Find the next token - Long
-//				if (ptr == NULL) goto ParseError;
-//				strncpy(gpsLong, ptr, 7);
-//				ptr = ntok(ptr);  // Find the next token - LongH
-//				if (ptr == NULL) goto ParseError;
-//				gpsLongH = ptr[0];
-//				ptr = ntok(ptr);  // Find the next token - Speed
-//				if (ptr == NULL) goto ParseError;
-//				strncpy(gpsSpeed, ptr, 5);
-//				ptr = ntok(ptr);  // Find the next token - Course
-//				if (ptr == NULL) goto ParseError;
-//				strncpy(gpsCourse, ptr, 5);
-//				ptr = ntok(ptr);  // Find the next token - Date
-//				if (ptr == NULL) goto ParseError;
-//				strncpy(gpsDate, ptr, 6);
-//				if (strlen(ptr) != 6) goto ParseError;  // check date length
 				for (uint8_t n=0; n<7; n++) { // skip to 7th next token - date
 					ptr = ntok(ptr);  // Find the next token 
 					if (ptr == NULL) goto ParseError;
@@ -235,7 +213,9 @@ void parseGPSdata(char *gpsBuffer) {
 				else {
 					tLast = tNow;
 					tDelta = tNow - tGPSupdate;
+#ifdef FEATURE_FLASH_GPS_RECEIVED
 					flash_gps_rcvd();  // show GPS RMC message received ???
+#endif
 					if (((tm.Second<5) && (tDelta>10)) || (tDelta>=60)) {  // update RTC once/minute or if it's been 60 seconds
 						//beep(1000, 1);  // debugging
 //						g_gps_updating = true;
