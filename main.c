@@ -118,6 +118,9 @@
 #ifdef FEATURE_WmGPS
 #include "gps.h"
 #endif
+#ifdef FEATURE_MESSAGES
+#include "msgs.h"
+#endif
 
 // Second indicator LED (optional second indicator on shield)
 #define LED_BIT PD7
@@ -165,10 +168,6 @@ uint16_t g_show_special_cnt = 0;  // display something special ("time", "alarm",
 //time_t g_tNow = 0;  // current local date and time as time_t, with DST offset
 tmElements_t* tm_; // current local date and time as TimeElements (pointer)
 //uint8_t alarm_hour = 0, alarm_min = 0, alarm_sec = 0;
-
-#ifdef FEATURE_MESSAGES
-#include "msgs.h"
-#endif
 
 extern enum shield_t shield;
 
