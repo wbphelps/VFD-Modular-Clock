@@ -1,6 +1,6 @@
  /*
  * VFD Modular Clock
- * (C) 2011 Akafugu Corporation
+ * (C) 2011-2013 Akafugu Corporation
  *
  * This program is free software; you can redistribute it and/or modify it under the
  * terms of the GNU General Public License as published by the Free Software
@@ -67,7 +67,7 @@ extern uint8_t g_has_dots;
 extern uint8_t g_alarm_switch;
 extern uint8_t g_brightness;
 extern uint8_t g_gps_enabled;
-extern uint8_t g_gps_updating;
+//extern uint8_t g_gps_updating;
 extern uint8_t g_has_eeprom;
 extern uint8_t g_alarming;
 
@@ -79,6 +79,8 @@ volatile uint16_t blink_counter = 0;
 uint16_t blink_on_time, blink_off_time;
 
 volatile uint16_t flash_counter = 0;
+volatile uint8_t gps_received = 0;
+volatile uint8_t gps_updating = 0;
 
 // dots [bit 0~5]
 uint8_t dots = 0;
@@ -215,17 +217,39 @@ void set_blink(bool OnOff)
 
 void flash_display(void)  // flash the display briefly
 {
+	flash_counter = 200;  // 0.2 second
 	display_on = false;
 //	_delay_ms(ms);  // can't use _delay_ms because beep does
-	flash_counter = 200;  // 0.2 second
 	while (flash_counter>0)  // wait for a little time
 		;
 	display_on = true;
 }
 
+void flash_gps_rcvd(void)  // flash the gps received indicator
+{
+	gps_received = true;
+	flash_counter = 100;  // 0.1 second
+///	while (flash_counter>0)  // wait for a little time
+///		;
+///	gps_received = false;  // turned off by interrupt routine
+}
+
+void flash_gps_update(void)  // flash the gps update indicator
+{
+	gps_updating = true;
+	flash_counter = 200;  // 0.2 second
+	if ((shield != SHIELD_IV18) && (shield != SHIELD_IV17))
+		display_on = false;
+	while (flash_counter>0)  // wait for a little time
+		;
+	display_on = true;
+	gps_updating = false;
+}
+
 void display_multiplex(void)
 {
-	uint8_t seg = 0;
+	uint8_t seg8 = 0;
+  uint16_t seg16 = 0;
 	clear_display();
 	if (display_on) {
 		if (_scrolling) 
@@ -241,10 +265,10 @@ void display_multiplex(void)
 						write_vfd_iv18(multiplex_counter, calculate_segments_7(sData[(7-multiplex_counter)+scroll_index]));
 					else {  // show alarm switch & gps status
 						if (g_alarm_switch)
-							seg = (1<<7);
-						if (g_gps_updating)
-							seg |= (1<<6);
-						write_vfd_iv18(8, seg);
+							seg8 = (1<<7);
+						if (gps_updating)
+							seg8 |= (1<<6);
+						write_vfd_iv18(8, seg8);
 					}
 					break;
 				case SHIELD_IV22:
@@ -259,17 +283,28 @@ void display_multiplex(void)
 					write_vfd_iv6(multiplex_counter, calculate_segments_7(data[multiplex_counter]));
 					break;
 				case SHIELD_IV17:
-					write_vfd_iv17(multiplex_counter, calculate_segments_16(data[multiplex_counter]));
+//					write_vfd_iv17(multiplex_counter, calculate_segments_16(data[multiplex_counter]));
+          seg16 = calculate_segments_16(data[multiplex_counter]);
+          if (multiplex_counter == 0) {
+            if (gps_received)  // show GPS received by lighting one segment
+//	            seg16 |= (1<<11);  // middle top segment
+	            seg16 |= (1<<14);  // middle bottom segment
+            if (gps_updating)  // show GPS updating by lighting some segments
+//	            seg16 |= ((1<<10)|(1<<12)|(1<<14));  // looks like an antenna
+	            seg16 |= ((1<<4)|(1<<5)|(1<<13)|(1<<15));  // triangle
+//	            seg16 |= ((1<<6)|(1<<7)|(1<<15)|(1<<8)|(1<<10));
+          }
+          write_vfd_iv17(multiplex_counter, seg16);
 					break;
 				case SHIELD_IV18:
 					if (multiplex_counter<8)
 						write_vfd_iv18(multiplex_counter, calculate_segments_7(data[7-multiplex_counter]));
 					else {  // show alarm switch & gps status
 						if (g_alarm_switch)
-							seg = (1<<7);
-						if (g_gps_updating)
-							seg |= (1<<6);
-						write_vfd_iv18(8, seg);
+							seg8 = (1<<7);
+						if (gps_updating)
+							seg8 |= (1<<6);
+						write_vfd_iv18(8, seg8);
 					}
 					break;
 				case SHIELD_IV22:
@@ -300,6 +335,11 @@ ISR(TIMER0_OVF_vect)
 		ms_counter = 0;
 		_millis++;
 
+#ifdef FEATURE_WmGPS
+		if (g_gps_enabled)
+			GPSread();  // check for data on the serial port
+#endif
+
 		// control blinking
 		if (blinking) {
 			if (blink_on) {
@@ -327,12 +367,12 @@ ISR(TIMER0_OVF_vect)
 			button_timer();
 		}
 
-#ifdef FEATURE_WmGPS
-		GPSread();  // check for data on the serial port
-#endif
-
-		if (flash_counter > 0)
+		if (flash_counter > 0) {
 			flash_counter--;
+			if (flash_counter == 0) {
+				gps_received = 0;
+				}
+			}
 
 		if (_scrolling) {
 			if (scroll_counter > 0)
@@ -340,7 +380,7 @@ ISR(TIMER0_OVF_vect)
 			else {
 				scroll_index++;
 				scroll_counter = scroll_time;
-				if (scroll_index==scroll_limit)
+				if (scroll_index>=scroll_limit)
 					_scrolling = false;
 			}
 		}

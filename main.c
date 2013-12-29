@@ -1,6 +1,6 @@
 /*
  * VFD Modular Clock
- * (C) 2011-2012 Akafugu Corporation
+ * (C) 2011-2013 Akafugu Corporation
  *
  * This program is free software; you can redistribute it and/or modify it under the
  * terms of the GNU General Public License as published by the Free Software
@@ -246,7 +246,7 @@ void initialize(void)
 	gps_init(g_gps_enabled);
 #endif
 #ifdef FEATURE_AUTO_DST
-	if (g_DST_mode)
+	if (g_DST_mode == DST_Auto) // Auto DST
 		DSTinit(tm_, g_DST_Rules);  // re-compute DST start, end	
 #endif
 }
@@ -352,12 +352,14 @@ void display_time(void)  // (wm)  runs approx every 100 ms
 		g_dateday = tm_->Day;  // save day for Menu
 #endif
 #ifdef FEATURE_AUTO_DST
-		if (tm_->Second%10 == 0)  // check DST Offset every 10 seconds (60?)
-			setDSToffset(tm_, g_DST_mode); 
 		if ((tm_->Hour == 0) && (tm_->Minute == 0) && (tm_->Second == 0)) {  // MIDNIGHT!
 			g_DST_updated = false;
-			if (g_DST_mode)
+			if (g_DST_mode == DST_Auto)
 				DSTinit(tm_, g_DST_Rules);  // re-compute DST start, end
+		}
+		if (g_DST_mode == DST_Auto) {
+			if (tm_->Second%10 == 0)  // check DST Offset every 10 seconds (60?)
+				setDSToffset(tm_, g_DST_mode);
 		}
 #endif
 #ifdef FEATURE_AUTO_DATE

@@ -63,6 +63,13 @@ typedef struct {
 	menu_value* menuList[];  // list of menu choices
 } menu_item_rw;
 
+// dst modes
+typedef enum {
+	DST_Off = 0,
+	DST_On = 1,
+	DST_Auto = 2,
+} DST_modes;
+
 // menu states
 typedef enum {
 	// basic states
