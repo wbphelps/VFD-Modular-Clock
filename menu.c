@@ -150,7 +150,7 @@ void setDSToffset(tmElements_t* tm_, uint8_t mode) {
 	}
 	else
 #endif // FEATURE_AUTO_DST
-		newOffset = mode;  // 0 or 1
+	newOffset = mode;  // 0 or 1
 	adjOffset = newOffset - g_DST_offset;  // offset delta
 	if (adjOffset == 0)  return;  // nothing to do
 	if (adjOffset > 0)

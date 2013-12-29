@@ -108,6 +108,8 @@ void set_brightness(uint8_t brightness);
 
 void set_blink(bool onOff);
 void flash_display(void);  // 11oct12/wbp
+void flash_gps_rcvd(void);  // 04sep13/wbp
+void flash_gps_update(void);  // 04sep13/wbp
 
 enum shield_t {
 	SHIELD_NONE = 0,

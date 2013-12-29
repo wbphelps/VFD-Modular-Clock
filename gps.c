@@ -23,26 +23,27 @@
 #include "piezo.h"
 #include "rtc.h"
 #include "Time.h"
-#include "xstrtok.h"
+//#include "xstrtok.h"
 
 // globals from main.c
 extern enum shield_t shield;
 
 //volatile uint8_t gpsEnabled = 0;
 #define gpsTimeoutLimit 5  // 5 seconds until we display the "no gps" message
-uint16_t gpsTimeout;  // how long since we received valid GPS data?
-static tmElements_t tm_last = {0, 0, 0, 0, 0, 0, 0};
+time_t gpsTimeout;  // how long since we received valid GPS data?
+time_t tLast = 0;  // for checking GPS messages
 
 void GPSread(void) 
 {
   char c = 0;
-  if ((g_gps_enabled) && (UCSR0A & _BV(RXC0))) {
+  if (UCSR0A & _BV(RXC0)) {
 		c=UDR0;  // get a byte from the port
-		if (c == '$') {
-			gpsNextBuffer[gpsBufferPtr] = 0;
-			gpsBufferPtr = 0;
+		if (c == '$') {  // start of a new message?
+//			gpsNextBuffer[gpsBufferPtr] = 0;
+			gpsBufferPtr = 0;  // reset buffer pointer to beginning
+			gpsNextBuffer[gpsBufferPtr] = c;  // add char to current buffer
 		}
-		if (c == '\n') {  // newline marks end of sentence
+		else if (c == '\n') {  // newline marks end of sentence
 			gpsNextBuffer[gpsBufferPtr] = 0;  // terminate string
 			if (gpsNextBuffer == gpsBuffer1) {  // switch buffers
 				gpsNextBuffer = gpsBuffer2;
@@ -54,10 +55,10 @@ void GPSread(void)
 			gpsBufferPtr = 0;
 			gpsDataReady_ = true;  // signal data ready
 		}
-		gpsNextBuffer[gpsBufferPtr] = c;  // add char to current buffer
-		gpsBufferPtr++;  // increment index
-		if (gpsBufferPtr >= GPSBUFFERSIZE)  // if buffer full
-			gpsBufferPtr = GPSBUFFERSIZE-1;  // decrement index to make room (overrun)
+		else
+			gpsNextBuffer[gpsBufferPtr] = c;  // add char to current buffer
+		if (gpsBufferPtr < (GPSBUFFERSIZE-1))  // if there is still room in buffer
+			gpsBufferPtr++;  // increment index
 	}
 //	return c;
 }
@@ -71,13 +72,14 @@ char *gpsNMEA(void) {
   return (char *)gpsLastBuffer;
 }
 
-uint32_t parsedecimal(char *str) {
+uint32_t parsedecimal(char *str, uint8_t len) {
   uint32_t d = 0;
-  while (str[0] != 0) {
-   if ((str[0] > '9') || (str[0] < '0'))
+//  while (str[0] != 0) {
+	for (uint8_t i=0; i<len; i++) {
+   if ((str[i] > '9') || (str[0] < '0'))
      return d;  // no more digits
-	 d = (d*10) + (str[0] - '0');
-   str++;
+	 d = (d*10) + (str[i] - '0');
+//   str++;
   }
   return d;
 }
@@ -92,6 +94,15 @@ uint32_t hex2i(char *str, uint8_t len) {
 	}
 	return d;
 }
+
+// find next token in GPS string - find next comma, then point to following char
+char * ntok ( char *ptr ) {
+	ptr = strchr(ptr, ',');  // Find the next comma
+	if (ptr == NULL) return NULL;
+	ptr++;  // point at next char after comma
+	return ptr;
+}
+
 //  225446       Time of fix 22:54:46 UTC
 //  A            Navigation receiver warning A = OK, V = warning
 //  4916.45,N    Latitude 49 deg. 16.45 min North
@@ -102,12 +113,20 @@ uint32_t hex2i(char *str, uint8_t len) {
 //  020.3,E      Magnetic variation 20.3 deg East
 //  *68          mandatory checksum
 
-//$GPRMC,225446.000,A,4916.45,N,12311.12,W,000.5,054.7,191194,020.3,E*68\r\n
+//$GPRMC,225446.000,A,4916.45,N,12311.12,W,000.5,054.7,191194,020.3,E,*68\r\n
 // 0         1         2         3         4         5         6         7
 // 0123456789012345678901234567890123456789012345678901234567890123456789012
 //    0     1       2    3    4     5    6   7     8      9     10  11 12
+// From John L
+//$GPRMC,080826.000,A,3351.3136,S,15109.5939,E,0.38,206.05,010812,,,A*7E
+// VK-162
+//$GPRMC,200618.00,A,3726.31733,N,12207.44383,W,0.373,,300413,,,A*66
+// Wikipedia
+//$GPRMC,092750.000,A,5321.6802,N,00630.3372,W,0.02,31.66,280511,,,A*43
+// There may be a comma after Magnetic variation direction... or not?
+
 void parseGPSdata(char *gpsBuffer) {
-	time_t tNow;
+	time_t tNow, tDelta;
 	tmElements_t tm;
 	uint8_t gpsCheck1, gpsCheck2;  // checksums
 //	char gpsTime[10];  // time including fraction hhmmss.fff
@@ -134,108 +153,125 @@ void parseGPSdata(char *gpsBuffer) {
 		{
 			gpsCheck1 ^= *ptr;
 			ptr++;
-			if (ptr>(gpsBuffer+GPSBUFFERSIZE)) goto GPSerror1;  // extra sanity check, can't hurt...
+			if (ptr>(gpsBuffer+GPSBUFFERSIZE)) goto ParseError;  // extra sanity check, can't hurt...
 		}
 		// now get the checksum from the string itself, which is in hex
     gpsCheck2 = atoh(*(ptr+1)) * 16 + atoh(*(ptr+2));
 		if (gpsCheck1 == gpsCheck2) {  // if checksums match, process the data
 			//beep(1000, 1);
-			// set up data structure for xstrtok()
-      XSTRTOK pTok; // structure for xstrtok()
-			pTok.str2parse = &gpsBuffer[1];  // string to parse
-			pTok.delim = ",*\r";  // delimiters
-//			pTok.quote = false;  // not interested in quote handling
-			ptr = xstrtok(&pTok);  // parse $GPRMC
-			if (ptr == NULL) goto GPSerror1;
-			ptr = xstrtok(&pTok);  // Time including fraction hhmmss.fff
-			if (ptr == NULL) goto GPSerror1;
-			if ((strlen(ptr) < 6) || (strlen(ptr) > 10)) goto GPSerror1;  // check time length
+			ptr = &gpsBuffer[1];  // start at beginning of buffer
+			ptr = ntok(ptr);  // Find the time string
+			if (ptr == NULL) goto ParseError;
+			char *p2 = strchr(ptr, ',');  // find comma after Time
+			if (p2 == NULL) goto ParseError;
+//			char ll = p2 - ptr - 1;
+//			if ((ll < 6) || (ll > 10)) goto ParseError2;  // check time length
+			if (p2 < (ptr+6)) goto ParseError;  // Time must be at least 6 chars
 //			strncpy(gpsTime, ptr, 10);  // copy time string hhmmss
-			tmp = parsedecimal(ptr);   // parse integer portion
+			tmp = parsedecimal(ptr,6);   // parse integer portion
 			tm.Hour = tmp / 10000;
 			tm.Minute = (tmp / 100) % 100;
 			tm.Second = tmp % 100;
-			ptr = xstrtok(&pTok);  // Status
-			if (ptr == NULL) goto GPSerror1;
-			gpsFixStat = ptr[0];
+			ptr = ntok(ptr);  // Find the next token - Status
+			if (ptr == NULL) goto ParseError;
+			gpsFixStat = ptr[0];  // fix status
 			if (gpsFixStat == 'A') {  // if data valid, parse time & date
 				gpsTimeout = 0;  // reset gps timeout counter
-				ptr = xstrtok(&pTok);  // Latitude including fraction
-				if (ptr == NULL) goto GPSerror1;
+//				ptr = ntok(ptr);  // Find the next token - Latitude including fraction
+//				if (ptr == NULL) goto ParseError;
 //				strncpy(gpsLat, ptr, 7);  // copy Latitude ddmm.ff
-				ptr = xstrtok(&pTok);  // Latitude N/S
-				if (ptr == NULL) goto GPSerror1;
+//				ptr = ntok(ptr);  // Find the next token - Latitude N/S
+//				if (ptr == NULL) goto ParseError;
 //				gpsLatH = ptr[0];
-				ptr = xstrtok(&pTok);  // Longitude including fraction hhmm.ff
-				if (ptr == NULL) goto GPSerror1;
+//				ptr = ntok(ptr);  // Find the next token - Long
+//				if (ptr == NULL) goto ParseError;
 //				strncpy(gpsLong, ptr, 7);
-				ptr = xstrtok(&pTok);  // Longitude Hemisphere
-				if (ptr == NULL) goto GPSerror1;
+//				ptr = ntok(ptr);  // Find the next token - LongH
+//				if (ptr == NULL) goto ParseError;
 //				gpsLongH = ptr[0];
-				ptr = xstrtok(&pTok);  // Ground speed 000.5
-				if (ptr == NULL) goto GPSerror1;
+//				ptr = ntok(ptr);  // Find the next token - Speed
+//				if (ptr == NULL) goto ParseError;
 //				strncpy(gpsSpeed, ptr, 5);
-				ptr = xstrtok(&pTok);  // Track angle (course) 054.7
-				if (ptr == NULL) goto GPSerror1;
+//				ptr = ntok(ptr);  // Find the next token - Course
+//				if (ptr == NULL) goto ParseError;
 //				strncpy(gpsCourse, ptr, 5);
-				ptr = xstrtok(&pTok);  // Date ddmmyy
-				if (ptr == NULL) goto GPSerror1;
+//				ptr = ntok(ptr);  // Find the next token - Date
+//				if (ptr == NULL) goto ParseError;
 //				strncpy(gpsDate, ptr, 6);
-				if (strlen(ptr) != 6) goto GPSerror1;  // check date length
-				tmp = parsedecimal(ptr); 
+//				if (strlen(ptr) != 6) goto ParseError;  // check date length
+				for (uint8_t n=0; n<7; n++) { // skip to 7th next token - date
+					ptr = ntok(ptr);  // Find the next token 
+					if (ptr == NULL) goto ParseError;
+				}
+				p2 = strchr(ptr, ',');  // find comma after Date
+				if (p2 == NULL) goto ParseError;
+//				ll = p2 - ptr - 1;
+				if (p2 != (ptr+6)) goto ParseError;  // check date length
+				tmp = parsedecimal(ptr, 6); 
 				tm.Day = tmp / 10000;
 				tm.Month = (tmp / 100) % 100;
 				tm.Year = tmp % 100;
-				ptr = xstrtok(&pTok);  // magnetic variation & dir
-				if (ptr == NULL) goto GPSerror1;
-				if (ptr == NULL) goto GPSerror1;
-				ptr = xstrtok(&pTok);  // Checksum
-				if (ptr == NULL) goto GPSerror1;
+//				ptr = ntok(ptr);  // Find the next token - Mag variation
+//				if (ptr == NULL) goto ParseError;
+//				ptr = ntok(ptr);  // Find the next token - Mag var direction
+//				if (ptr == NULL) goto ParseError;
+				ptr = strchr(ptr, '*');  // Find Checksum
+				if (ptr == NULL) goto ParseError;
 //				strncpy(gpsCKS, ptr, 2);  // save checksum chars
 				
 				tm.Year = y2kYearToTm(tm.Year);  // convert yy year to (yyyy-1970) (add 30)
 				tNow = makeTime(&tm);  // convert to time_t
+//				g_gps_updating = false;
 				
-//				if ((tGPSupdate>0) && (abs(tNow-tGPSupdate)>SECS_PER_DAY))  goto GPSerror2;  // GPS time jumped more than 1 day
-				// only accept GPS data if 2 messages in sequence have same Year, Month, Day, Hour, and Minute
-				// this catches corrupt message strings, but also skips a few messages
-				// the GPS emits a GPRMC message once a second, so skipping a message now and then is fine
-				if ((tm.Year != tm_last.Year) || (tm.Month != tm_last.Month) || (tm.Day != tm_last.Day) || (tm.Hour != tm_last.Hour) || (tm.Minute != tm_last.Minute)) {
-					tm_last = tm;
-					goto GPSerror2;  // ignore quietly, in case it's just a normal difference
+//				if ((tGPSupdate>0) && (abs(tNow-tGPSupdate)>SECS_PER_DAY))  goto TimeError;  // GPS time jumped more than 1 day
+				// only accept GPS data if 2 messages in sequence are reasonably close in time
+				// this helps catch corrupt message strings
+				// the GPS emits a GPRMC message once a second
+				if ( (tLast>0) && (abs(tNow - tLast)>30) )  // if time jumps by more than a few seconds, 
+				{
+					tLast = tNow;  // save new time
+					goto TimeError;  // it's probably an error
 				}
-				tm_last = tm;
-				
-				if ((tm.Second == 0) || ((tNow - tGPSupdate)>=60)) {  // update RTC once/minute or if it's been 60 seconds
-					//beep(1000, 1);  // debugging
-					g_gps_updating = true;
-					tGPSupdate = tNow;  // remember time of this update
-					tNow = tNow + (long)(g_TZ_hour + g_DST_offset) * SECS_PER_HOUR;  // add time zone hour offset & DST offset
-					if (g_TZ_hour < 0)  // add or subtract time zone minute offset
-						tNow = tNow - (long)g_TZ_minute * SECS_PER_HOUR;
-					else
-						tNow = tNow + (long)g_TZ_minute * SECS_PER_HOUR;
-					rtc_set_time_t(tNow);  // set RTC from adjusted GPS time & date
-					if (shield != SHIELD_IV18)
-						flash_display();  // flash display to show GPS update 28oct12/wbp - shorter blink
+				else {
+					tLast = tNow;
+					tDelta = tNow - tGPSupdate;
+					flash_gps_rcvd();  // show GPS RMC message received ???
+					if (((tm.Second<5) && (tDelta>10)) || (tDelta>=60)) {  // update RTC once/minute or if it's been 60 seconds
+						//beep(1000, 1);  // debugging
+//						g_gps_updating = true;
+						tGPSupdate = tNow;  // remember time of this update
+						flash_gps_update();  // show GPS is updating
+						tNow = tNow + (long)(g_TZ_hour + g_DST_offset) * SECS_PER_HOUR;  // add time zone hour offset & DST offset
+						if (g_TZ_hour < 0)  // add or subtract time zone minute offset
+							tNow = tNow - (long)g_TZ_minute * SECS_PER_HOUR;
+						else
+							tNow = tNow + (long)g_TZ_minute * SECS_PER_HOUR;
+						rtc_set_time_t(tNow);  // set RTC from adjusted GPS time & date
+//						if ((shield != SHIELD_IV18) && (shield != SHIELD_IV17))
+//							flash_display();  // flash display to show GPS update 28oct12/wbp - shorter blink
+					}
+//					else
+//						g_gps_updating = false;
 				}
-				else
-					g_gps_updating = false;
-
 			} // if fix status is A
 		} // if checksums match
 		else  // checksums do not match
 			g_gps_cks_errors++;  // increment error count
 		return;
-GPSerror1:
+//ParseError3:
+//		beep(1100,200);  // error beep
+//		goto ParseError;
+//ParseError2:
+//		beep(880,200);  // error beep
+ParseError:
 		g_gps_parse_errors++;  // increment error count
-		beep(1100,200);  // error signal - I'm leaving this in for now /wm
-		goto GPSerror2a;
-GPSerror2:
+		beep(1100,100);  // error beep
+		goto Error2a;
+TimeError:
 		g_gps_time_errors++;  // increment error count
-GPSerror2a:
-//		beep(1100,200);  // error signal - I'm leaving this in for now /wm
-		flash_display();  // flash display to show GPS error
+		beep(2200,100);  // error signal - I'm leaving this in for now /wm
+Error2a:
+//		flash_display();  // flash display to show GPS error
 		strcpy(gpsBuffer, "");  // wipe GPS buffer
 	}  // if "$GPRMC"
 }

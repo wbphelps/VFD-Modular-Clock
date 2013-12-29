@@ -1,6 +1,6 @@
 /*
  * VFD Modular Clock
- * (C) 2011-2012 Akafugu Corporation
+ * (C) 2011-2013 Akafugu Corporation
  *
  * This program is free software; you can redistribute it and/or modify it under the
  * terms of the GNU General Public License as published by the Free Software
@@ -17,6 +17,7 @@
 *todo:
  * ?
  
+ * 09dec13 separate include for messages 
  * 05may13 add new data check in parseGPSdata()
  * 06apr13 fix auto dst southern hemisphere bug
  * 10mar13 add millis()
@@ -166,12 +167,7 @@ tmElements_t* tm_; // current local date and time as TimeElements (pointer)
 //uint8_t alarm_hour = 0, alarm_min = 0, alarm_sec = 0;
 
 #ifdef FEATURE_MESSAGES
-//uint8_t bdMonth = 2;
-//uint8_t bdDay = 28;
-//char bdMsg[] = "Happy Birthday John";
-uint8_t bdMonth = 3;
-uint8_t bdDay = 14;
-char bdMsg[] = "Happy Birthday William";
+#include "msgs.h"
 #endif
 
 extern enum shield_t shield;
@@ -301,22 +297,17 @@ void display_date(void)
 	clock_mode = MODE_DATE;  // displaying date now
 	show_string(" ");  // blank normal time display
 	set_scroll(300);  // display date at 3 cps
-	if ((tm_->Month == 1) && (tm_->Day == 1)) {
-		show_scroll("Happy New Year");
-		set_scroll(250);  // 4 cps
-	}
-	else if ((tm_->Month == 12) && (tm_->Day == 25)) {
-		show_scroll("Merry Christmas");
-		set_scroll(250);  // 4 cps
-	}
-// uncomment this block to display a message on someone's birthday
-	else if ((tm_->Month == bdMonth) && (tm_->Day == bdDay)) {
-		show_scroll(bdMsg);  // show birthday message
-		set_scroll(225);  // 4.5 cps
-		}
-	else
+  uint8_t sd = true; // show date if no message
+  for (uint8_t i=0; i<msg_Count; i++) {
+    if ((tm_->Month == msg_Dates[i][0]) && (tm_->Day == msg_Dates[i][1])) {
+			show_scroll(msg_Texts[i]);  // show message
+			set_scroll(250);  // 4 cps
+			sd = false;
+    }
+  }
+  if (sd)
 #endif
-		scroll_date(tm_, g_Region);  // show date from last rtc_get_time() call
+	scroll_date(tm_, g_Region);  // show date from last rtc_get_time() call
 }
 #endif
 
@@ -352,12 +343,14 @@ void display_time(void)  // (wm)  runs approx every 100 ms
 		g_dateday = tm_->Day;  // save day for Menu
 #endif
 #ifdef FEATURE_AUTO_DST
-		if (tm_->Second%10 == 0)  // check DST Offset every 10 seconds (60?)
-			setDSToffset(tm_, g_DST_mode); 
 		if ((tm_->Hour == 0) && (tm_->Minute == 0) && (tm_->Second == 0)) {  // MIDNIGHT!
 			g_DST_updated = false;
 			if (g_DST_mode)
 				DSTinit(tm_, g_DST_Rules);  // re-compute DST start, end
+		}
+		if (g_DST_mode) {
+			if (tm_->Second%10 == 0)  // check DST Offset every 10 seconds (60?)
+				setDSToffset(tm_, g_DST_mode);
 		}
 #endif
 #ifdef FEATURE_AUTO_DATE
@@ -471,7 +464,8 @@ void main(void)
 #ifdef FEATURE_MESSAGES
 // uncomment these to display a message when the clock is plugged in
 //	show_scroll("Hello World");
-	show_scroll(bdMsg);  // show birthday message
+//	show_scroll(bdMsg);  // show birthday message
+	show_scroll(msg_Texts[0]);  // show birthday message
 	_delay_ms(500);
 #endif
 

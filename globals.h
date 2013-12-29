@@ -93,7 +93,7 @@ int8_t g_flw_enabled;
 int8_t g_gps_enabled;
 int8_t g_TZ_hour;
 int8_t g_TZ_minute;
-int8_t g_gps_updating;  // for signalling GPS update on some displays
+//int8_t g_gps_updating;  // for signalling GPS update on some displays
 // debugging counters 
 int8_t g_gps_cks_errors;  // gps checksum error counter
 int8_t g_gps_parse_errors;  // gps parse error counter
