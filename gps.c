@@ -221,11 +221,11 @@ void parseGPSdata(char *gpsBuffer) {
 //						g_gps_updating = true;
 						tGPSupdate = tNow;  // remember time of this update
 						flash_gps_update();  // show GPS is updating
-						tNow = tNow + (long)(g_TZ_hour + g_DST_offset) * SECS_PER_HOUR;  // add time zone hour offset & DST offset
-						if (g_TZ_hour < 0)  // add or subtract time zone minute offset
-							tNow = tNow - (long)g_TZ_minute * SECS_PER_HOUR;
+						tNow = tNow + (long)(globals.TZ_hour + globals.DST_offset) * SECS_PER_HOUR;  // add time zone hour offset & DST offset
+						if (globals.TZ_hour < 0)  // add or subtract time zone minute offset
+							tNow = tNow - (long)globals.TZ_minute * SECS_PER_HOUR;
 						else
-							tNow = tNow + (long)g_TZ_minute * SECS_PER_HOUR;
+							tNow = tNow + (long)globals.TZ_minute * SECS_PER_HOUR;
 						rtc_set_time_t(tNow);  // set RTC from adjusted GPS time & date
 //						if ((shield != SHIELD_IV18) && (shield != SHIELD_IV17))
 //							flash_display();  // flash display to show GPS update 28oct12/wbp - shorter blink

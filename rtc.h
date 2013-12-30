@@ -67,13 +67,13 @@ void rtc_set_ds3231(void);
 // Gets the time: Supports both 24-hour and 12-hour mode
 TimeElements* rtc_get_time(void);
 // Gets the time: 24-hour mode only
-bool rtc_get_time_s(uint8_t* hour, uint8_t* min, uint8_t* sec);
+bool rtc_get_time_s(int8_t* hour, int8_t* min, int8_t* sec);
 // Gets the time and returns time_t value
 time_t rtc_get_time_t(void);
 // Sets the time: Supports both 24-hour and 12-hour mode
 void rtc_set_time(TimeElements* te);
 // Sets the time: Supports 12-hour mode only
-void rtc_set_time_s(uint8_t hour, uint8_t min, uint8_t sec);
+void rtc_set_time_s(int8_t hour, int8_t min, int8_t sec);
 // Sets the time from time_t value
 void rtc_set_time_t(time_t tSet);
 
@@ -101,9 +101,9 @@ void rtc_osc32kHz_enable(bool enable);
 // Alarm functionality
 void rtc_reset_alarm(void);
 void rtc_set_alarm(TimeElements* te);
-void rtc_set_alarm_s(uint8_t hour, uint8_t min, uint8_t sec);
+void rtc_set_alarm_s(int8_t hour, int8_t min, int8_t sec);
 TimeElements* rtc_get_alarm(void);
-void rtc_get_alarm_s(uint8_t* hour, uint8_t* min, uint8_t* sec);
+void rtc_get_alarm_s(int8_t* hour, int8_t* min, int8_t* sec);
 bool rtc_check_alarm(void);
 bool rtc_check_alarm_t(TimeElements* te);
 bool rtc_check_alarm_cached(TimeElements* te, uint8_t hour, uint8_t min, uint8_t sec);

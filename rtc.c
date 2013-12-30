@@ -202,7 +202,7 @@ TimeElements* rtc_get_time(void)
 	return &_te;
 }
 
-bool rtc_get_time_s(uint8_t* hour, uint8_t* min, uint8_t* sec)
+bool rtc_get_time_s(int8_t* hour, int8_t* min, int8_t* sec)
 {
 	uint8_t rtc[9];
 
@@ -281,7 +281,7 @@ void rtc_set_time(TimeElements* te)
 	twi_end_transmission();
 }
 
-void rtc_set_time_s(uint8_t hour, uint8_t min, uint8_t sec)
+void rtc_set_time_s(int8_t hour, int8_t min, int8_t sec)
 {
 	twi_begin_transmission(RTC_ADDR);
 	twi_send_byte(0x0);
@@ -580,7 +580,7 @@ void rtc_reset_alarm(void)
 }
 
 // fixme: add an option to set whether or not the INTCN and Interrupt Enable flag is set when setting the alarm
-void rtc_set_alarm_s(uint8_t hour, uint8_t min, uint8_t sec)
+void rtc_set_alarm_s(int8_t hour, int8_t min, int8_t sec)
 {
 	if (hour > 23) return;
 	if (min > 59) return;
@@ -619,7 +619,7 @@ void rtc_set_alarm(TimeElements* te)
 	rtc_set_alarm_s(te->Hour, te->Minute, te->Second);
 }
 
-void rtc_get_alarm_s(uint8_t* hour, uint8_t* min, uint8_t* sec)
+void rtc_get_alarm_s(int8_t* hour, int8_t* min, int8_t* sec)
 {
 	if (s_is_ds1307) {
 		if (hour) *hour = rtc_get_sram_byte(0);
@@ -635,11 +635,11 @@ void rtc_get_alarm_s(uint8_t* hour, uint8_t* min, uint8_t* sec)
 
 TimeElements* rtc_get_alarm(void)
 {
-	uint8_t hour, min, sec;
+	int8_t hour, min, sec;
 	rtc_get_alarm_s(&hour, &min, &sec);
-	_ae.Hour = hour;
-	_ae.Minute = min;
-	_ae.Second = sec;
+	_ae.Hour = (uint8_t)hour;
+	_ae.Minute = (uint8_t)min;
+	_ae.Second = (uint8_t)sec;
 	return &_ae;
 }
 
@@ -650,7 +650,7 @@ bool rtc_check_alarm(void)
 		uint8_t min  = rtc_get_sram_byte(1);
 		uint8_t sec  = rtc_get_sram_byte(2);
 
-		uint8_t cur_hour, cur_min, cur_sec;
+		int8_t cur_hour, cur_min, cur_sec;
 		rtc_get_time_s(&cur_hour, &cur_min, &cur_sec);
 		
 		if (cur_hour == hour && cur_min == min && cur_sec == sec)

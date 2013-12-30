@@ -212,7 +212,7 @@ void initialize(void)
 	globals_init();
 	beep(440, 75);
 	_delay_ms(75);
-	display_init(g_brightness);
+	display_init(globals.brightness);
 	
 	g_alarm_switch = get_alarm_switch();
 
@@ -222,7 +222,7 @@ void initialize(void)
 	g_has_eeprom = has_eeprom();
 //	if (!g_has_eeprom)  beep(440,200);  // debug
 	if (!g_has_eeprom)
-		g_flw_enabled = false;
+		globals.flw_enabled = false;
 	if (tm_ && g_has_eeprom)
 		seed_random(tm_->Hour * 10000 + tm_->Minute + 100 + tm_->Second);
 #endif
@@ -230,7 +230,7 @@ void initialize(void)
 	beep(880, 75);
 	_delay_ms(75);
 	menu_init();  // must come after display, flw init
-	rtc_get_alarm_s(&alarm_hour, &alarm_min, &alarm_sec);
+	rtc_get_alarm_s(&alarm_hour, &alarm_minute, &alarm_second);
 
 	// set up interrupt for alarm switch
 	PCICR |= (1 << PCIE2);
@@ -238,11 +238,11 @@ void initialize(void)
 	
 #ifdef FEATURE_WmGPS
   // setup uart for GPS
-	gps_init(g_gps_enabled);
+	gps_init(globals.gps_enabled);
 #endif
 #ifdef FEATURE_AUTO_DST
-	if (g_DST_mode == DST_Auto) // Auto DST
-		DSTinit(tm_, g_DST_Rules);  // re-compute DST start, end	
+	if (globals.DST_mode == DST_Auto) // Auto DST
+		DSTinit(tm_, globals.DST_Rules);  // re-compute DST start, end	
 #endif
 }
 
@@ -306,7 +306,7 @@ void display_date(void)
   }
   if (sd)
 #endif
-	scroll_date(tm_, g_Region);  // show date from last rtc_get_time() call
+	scroll_date(tm_, globals.Region);  // show date from last rtc_get_time() call
 }
 #endif
 
@@ -319,15 +319,15 @@ void display_time(void)  // (wm)  runs approx every 100 ms
 	}
 	else if (clock_mode == MODE_ALARM_TIME) {
 		if (g_alarm_switch) {
-			rtc_get_alarm_s(&alarm_hour, &alarm_min, &alarm_sec);
-			show_alarm_time(alarm_hour, alarm_min, 0);
+			rtc_get_alarm_s(&alarm_hour, &alarm_minute, &alarm_second);
+			show_alarm_time(alarm_hour, alarm_minute, 0);
 		}
 		else {
 			show_alarm_off();
 		}
 	}
 // alternate temp and time every 2.5 seconds
-	else if (g_show_temp && rtc_is_ds3231() && counter > 250) {
+	else if (globals.show_temp && rtc_is_ds3231() && counter > 250) {
 		int8_t t;
 		uint8_t f;
 		ds3231_get_temp_int(&t, &f);
@@ -337,19 +337,19 @@ void display_time(void)  // (wm)  runs approx every 100 ms
 		tm_ = rtc_get_time();
 		if (tm_ == NULL) return;
 #ifdef FEATURE_SET_DATE
-		g_dateyear = tm_->Year;  // save year for Menu
-		g_datemonth = tm_->Month;  // save month for Menu
-		g_dateday = tm_->Day;  // save day for Menu
+		globals.dateyear = tm_->Year;  // save year for Menu
+		globals.datemonth = tm_->Month;  // save month for Menu
+		globals.dateday = tm_->Day;  // save day for Menu
 #endif
 #ifdef FEATURE_AUTO_DST
 		if ((tm_->Hour == 0) && (tm_->Minute == 0) && (tm_->Second == 0)) {  // MIDNIGHT!
 			g_DST_updated = false;
-			if (g_DST_mode == DST_Auto)
-				DSTinit(tm_, g_DST_Rules);  // re-compute DST start, end
+			if (globals.DST_mode == DST_Auto)
+				DSTinit(tm_, globals.DST_Rules);  // re-compute DST start, end
 		}
-		if (g_DST_mode == DST_Auto) {
+		if (globals.DST_mode == DST_Auto) {
 			if (tm_->Second%10 == 0)  // check DST Offset every 10 seconds (60?)
-				setDSToffset(tm_, g_DST_mode);
+				setDSToffset(tm_, globals.DST_mode);
 		}
 #endif
 #ifdef FEATURE_AUTO_DATE
@@ -357,7 +357,7 @@ void display_time(void)  // (wm)  runs approx every 100 ms
 			if (!scrolling())  // Still scrolling date or message?
 				clock_mode = save_mode;  // no, restore previous mode
 		}
-		else if (g_AutoDate && (tm_->Second == g_autotime) ) { 
+		else if (globals.AutoDate && (tm_->Second == g_autotime) ) { 
 			save_mode = clock_mode;  // save current mode
 			display_date();  // show date or other message
 		}
@@ -365,13 +365,13 @@ void display_time(void)  // (wm)  runs approx every 100 ms
 #ifdef FEATURE_FLW
 		if (clock_mode == MODE_FLW) {
 			if ((tm_->Second >= g_autotime - 3) && (tm_->Second < g_autotime))
-				show_time(tm_, g_24h_clock, 0); // show time briefly each minute
+				show_time(tm_, globals.clock_24h, 0); // show time briefly each minute
 			else
 				show_flw(tm_); // otherwise show FLW
 		}
 		else
 #endif
-		show_time(tm_, g_24h_clock, clock_mode);
+		show_time(tm_, globals.clock_24h, clock_mode);
 	}
 
 	counter++;
@@ -532,14 +532,14 @@ unsigned long t1, t2;
 			if (g_alarm_switch) {
 				menu_state = STATE_SET_ALARM;
 				show_set_alarm();
-				rtc_get_alarm_s(&alarm_hour, &alarm_min, &alarm_sec);
-				time_to_set = alarm_hour*60 + alarm_min;
+				rtc_get_alarm_s(&alarm_hour, &alarm_minute, &alarm_second);
+				time_to_set = alarm_hour*60 + alarm_minute;
 			}
 			else {
 				menu_state = STATE_SET_CLOCK;
 				show_set_time();		
-				rtc_get_time_s(&hour, &min, &sec);
-				time_to_set = hour*60 + min;
+				rtc_get_time_s(&time_hour, &time_minute, &time_second);
+				time_to_set = time_hour*60 + time_minute;
 			}
 
 			set_blink(true);
@@ -581,9 +581,9 @@ unsigned long t1, t2;
 				}
 				else {
 					alarm_hour = time_to_set / 60;
-					alarm_min  = time_to_set % 60;
-					alarm_sec  = 0;
-					rtc_set_alarm_s(alarm_hour, alarm_min, alarm_sec);
+					alarm_minute  = time_to_set % 60;
+					alarm_second  = 0;
+					rtc_set_alarm_s(alarm_hour, alarm_minute, alarm_second);
 				}
 
 				menu_state = STATE_CLOCK;
@@ -611,7 +611,7 @@ unsigned long t1, t2;
 
 #ifdef FEATURE_FLW
 			if (clock_mode == MODE_FLW && !g_has_eeprom) clock_mode++;
-			if (clock_mode == MODE_FLW && !g_flw_enabled) clock_mode++;
+			if (clock_mode == MODE_FLW && !globals.flw_enabled) clock_mode++;
 #endif
 
 #ifdef FEATURE_AUTO_DATE
@@ -652,23 +652,26 @@ unsigned long t1, t2;
 		
 		// fixme: alarm should not be checked when setting time or alarm
 		// fixme: alarm will be missed if time goes by Second=0 while in menu
-		if (g_alarm_switch && rtc_check_alarm_cached(tm_, alarm_hour, alarm_min, alarm_sec)) {
+		if (g_alarm_switch && rtc_check_alarm_cached(tm_, alarm_hour, alarm_minute, alarm_second)) {
 			start_alarm();
 		}
 
 #ifdef FEATURE_AUTO_DIM			
-		if ((g_AutoDim) && (tm_->Minute == 0) && (tm_->Second == 0))  {  // Auto Dim enabled?
-			if (tm_->Hour == g_AutoDimHour) {
-				set_brightness(g_AutoDimLevel);
+		if ((globals.AutoDim) && (tm_->Minute == 0) && (tm_->Second == 0))  {  // Auto Dim enabled?
+			if (tm_->Hour == globals.AutoDimHour1) {
+				set_brightness(globals.AutoDimLevel1);
 			}
-			else if (tm_->Hour == g_AutoBrtHour) {
-				set_brightness(g_AutoBrtLevel);
+			else if (tm_->Hour == globals.AutoDimHour2) {
+				set_brightness(globals.AutoDimLevel2);
+			}
+			else if (tm_->Hour == globals.AutoDimHour3) {
+				set_brightness(globals.AutoDimLevel3);
 			}
 		}
 #endif
 
 #ifdef FEATURE_WmGPS
-		if (g_gps_enabled) {
+		if (globals.gps_enabled) {
 			if (gpsDataReady()) {
 				parseGPSdata(gpsNMEA());  // get the GPS serial stream and possibly update the clock 
 			}

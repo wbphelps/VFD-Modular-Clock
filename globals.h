@@ -18,7 +18,7 @@
 
 #define FEATURE_MENU_TIME  // add alarm & time to menu
 #define FEATURE_GPS_DEBUG  // enables GPS debugging counters & menu items
-#define FEATURE_MESSAGES  // holiday messages
+//#define FEATURE_MESSAGES  // holiday messages
 //#define FEATURE_FLASH_GPS_RECEIVED // show when GPS message is received
 
 #ifdef __FLASH
@@ -27,105 +27,83 @@
 #define FLASH
 #endif
 
-extern uint8_t b_24h_clock;
-extern uint8_t b_show_temp;
-extern uint8_t b_show_dots;
-extern uint8_t b_brightness;
-extern uint8_t b_volume;
-//#ifdef FEATURE_SET_DATE  // not used, date & time stored in RTC
-//extern uint8_t b_dateyear;
-//extern uint8_t b_datemonth;
-//extern uint8_t b_dateday;
-//#endif
+// date format modes
+typedef enum {
+  FORMAT_YMD = 0,
+  FORMAT_DMY,
+  FORMAT_MDY,
+} date_format_t;
+
+// alarm type
+typedef enum {
+  ALARM_NORMAL = 0,
+  ALARM_PROGRESSIVE,
+} alarm_type_t;
+
+struct __globals
+{
+	uint8_t EEcheck1;
+	int8_t clock_24h;
+	int8_t show_temp;
+	int8_t show_humid;
+	int8_t show_press;
+	int8_t show_dots;
+	int8_t brightness;
+	int8_t volume;
+	int8_t dateyear;
+	int8_t datemonth;
+	int8_t dateday;
+	int8_t alarmtype;
+	int8_t snooze_enabled;
 #ifdef FEATURE_FLW
-extern uint8_t b_flw_enabled;
+	int8_t flw_enabled
 #endif
 #ifdef FEATURE_WmGPS 
-extern uint8_t b_gps_enabled;
-extern uint8_t b_TZ_hour;
-extern uint8_t b_TZ_minute;
-extern uint8_t b_gps_updating;  // for signalling GPS update on some displays
+	int8_t gps_enabled;
+	int8_t TZ_hour; // offset by 12 to make positive???
+	int8_t TZ_minute;
 #endif
 #if defined FEATURE_WmGPS || defined FEATURE_AUTO_DST
-extern uint8_t b_DST_mode;  // DST off, on, auto?
-extern uint8_t b_DST_offset;  // DST offset in Hours
-extern uint8_t b_DST_updated;  // DST update flag = allow update only once per day
+	int8_t DST_mode;  // DST off, on, auto?
+	int8_t DST_offset;  // DST offset in Hours
+#endif
+#ifdef FEATURE_AUTO_DST  // DST rules
+	int8_t DST_Rules[9];
 #endif
 #ifdef FEATURE_AUTO_DATE
-extern uint8_t b_Region;
-extern uint8_t b_AutoDate;
+//	date_format_t date_format;
+	int8_t Region;
+	int8_t AutoDate;
 #endif
 #ifdef FEATURE_AUTO_DIM
-extern uint8_t b_AutoDim;
-extern uint8_t b_AutoDimHour;
-extern uint8_t b_AutoDimLevel;
-extern uint8_t b_AutoBrtHour;
-extern uint8_t b_AutoBrtLevel;
+	int8_t AutoDim;
+	int8_t AutoDimHour1;
+	int8_t AutoDimLevel1;
+	int8_t AutoDimHour2;
+	int8_t AutoDimLevel2;
+	int8_t AutoDimHour3;
+	int8_t AutoDimLevel3;
 #endif
-#ifdef FEATURE_AUTO_DST
-extern uint8_t b_DST_Rule0;
-extern uint8_t b_DST_Rule1;
-extern uint8_t b_DST_Rule2;
-extern uint8_t b_DST_Rule3;
-extern uint8_t b_DST_Rule4;
-extern uint8_t b_DST_Rule5;
-extern uint8_t b_DST_Rule6;
-extern uint8_t b_DST_Rule7;
-extern uint8_t b_DST_Rule8;
-#endif
+	uint8_t EEcheck2;
+};
 
-int8_t g_24h_clock;
-int8_t g_show_temp;
-int8_t g_show_dots;
-int8_t g_brightness;
-int8_t g_volume;
-#ifdef FEATURE_SET_DATE
-int8_t g_dateyear;
-int8_t g_datemonth;
-int8_t g_dateday;
-#endif
-uint8_t alarm_hour, alarm_min, alarm_sec;
-uint8_t hour, min, sec;
-int16_t time_to_set;
-#ifdef FEATURE_FLW
-int8_t g_flw_enabled;
-#endif
+int8_t alarm_hour, alarm_minute, alarm_second;
+int8_t time_hour, time_minute, time_second;
+uint16_t time_to_set;
+
 #ifdef FEATURE_WmGPS 
-int8_t g_gps_enabled;
-int8_t g_TZ_hour;
-int8_t g_TZ_minute;
-//int8_t g_gps_updating;  // for signalling GPS update on some displays
-// debugging counters 
 int8_t g_gps_cks_errors;  // gps checksum error counter
 int8_t g_gps_parse_errors;  // gps parse error counter
 int8_t g_gps_time_errors;  // gps time error counter
 #endif
 #if defined FEATURE_WmGPS || defined FEATURE_AUTO_DST
-int8_t g_DST_mode;  // DST off, on, auto?
-int8_t g_DST_offset;  // DST offset in Hours
-int8_t g_DST_updated;  // DST update flag = allow update only once per day
-#endif
-#ifdef FEATURE_AUTO_DST  // DST rules
-//DST_Rules dst_rules = {{3,1,2,2},{11,1,1,2},1};   // initial values from US DST rules as of 2011
-int8_t g_DST_Rules[9];
-#endif
-#ifdef FEATURE_AUTO_DATE
-int8_t g_Region;
-int8_t g_AutoDate;
-#endif
-#ifdef FEATURE_AUTO_DIM
-int8_t g_AutoDim;
-int8_t g_AutoDimHour;
-int8_t g_AutoDimLevel;
-int8_t g_AutoBrtHour;
-int8_t g_AutoBrtLevel;
+uint8_t g_DST_updated;  // DST update flag = allow update only once per day
 #endif
 uint8_t g_has_dots; // can current shield show dot (decimal points)
-#ifdef FEATURE_FLW
-uint8_t g_has_eeprom; // set to true if there is a four letter word EEPROM attached
-#endif
 
 void globals_init(void);
+void save_globals(void);
+extern struct __globals globals; // can't put this here...
 
 #endif
 

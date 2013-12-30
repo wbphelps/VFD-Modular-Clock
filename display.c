@@ -17,6 +17,7 @@
 #include <avr/interrupt.h>
 //#include <util/delay.h>
 #include <string.h>
+#include "globals.h"
 #include "display.h"
 #include "rtc.h"
 #ifdef FEATURE_WmGPS
@@ -62,11 +63,11 @@ volatile uint8_t scroll_index = 0;
 uint8_t scroll_limit = 0;
 
 // globals from main.c
-extern uint8_t g_show_dots;
+//extern uint8_t g_show_dots;
 extern uint8_t g_has_dots;
 extern uint8_t g_alarm_switch;
-extern uint8_t g_brightness;
-extern uint8_t g_gps_enabled;
+//extern uint8_t g_brightness;
+//extern uint8_t g_gps_enabled;
 //extern uint8_t g_gps_updating;
 extern uint8_t g_has_eeprom;
 extern uint8_t g_alarming;
@@ -190,7 +191,7 @@ void display_init(uint8_t brightness)
 // brightness value: 1 (low) - 10 (high)
 uint16_t _bright=0;
 void set_brightness(uint8_t brightness) {
-	g_brightness = brightness;  // update global so it stays consistent 16nov12/wbp
+	globals.brightness = brightness;  // update global so it stays consistent 16nov12/wbp
   _bright = brightness;
 	if (_bright > 10) _bright = 10;
 	_bright = (10 - _bright) * 25; // translate to PWM value
@@ -211,7 +212,7 @@ void set_blink(bool OnOff)
 	}
 	if (!blinking) {
 		blink_on = true;
-		set_brightness(g_brightness); // restore brightness
+		set_brightness(globals.brightness); // restore brightness
 	}
 }
 
@@ -336,7 +337,7 @@ ISR(TIMER0_OVF_vect)
 		_millis++;
 
 #ifdef FEATURE_WmGPS
-		if (g_gps_enabled)
+		if (globals.gps_enabled)
 			GPSread();  // check for data on the serial port
 #endif
 
@@ -465,7 +466,7 @@ uint8_t print_strn(char* str, uint8_t offset, uint8_t n)
 	return offset;
 }
 
-extern uint8_t g_volume;
+//extern uint8_t g_volume;
 
 unsigned long g_offset = 0; // offset for where to search for next word in eeprom
 #ifdef FEATURE_FLW
@@ -478,7 +479,7 @@ uint8_t prev_sec = 0;
 // set dots based on mode and seconds
 void print_dots(uint8_t mode, bool _24h_clock, uint8_t seconds)
 {
-	if (g_show_dots) {
+	if (globals.show_dots) {
 		if (digits == 8 && mode == 0) {
 			if (_24h_clock) {
 				sbi(dots, 3);
