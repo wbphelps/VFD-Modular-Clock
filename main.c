@@ -17,6 +17,7 @@
 *todo:
  * ?
  
+ * 01Jan14 globals structure, saved to EE memory 
  * 09dec13 separate include for messages 
  * 05may13 add new data check in parseGPSdata()
  * 06apr13 fix auto dst southern hemisphere bug
@@ -292,10 +293,10 @@ void display_date(void)
 {
 // display the date (or other message) once a minute just before the minute changes
 // the timing is tuned such that the clock shows the time again at 59 1/2 seconds
-#ifdef FEATURE_MESSAGES
 	clock_mode = MODE_DATE;  // displaying date now
 	show_string(" ");  // blank normal time display
 	set_scroll(300);  // display date at 3 cps
+#ifdef FEATURE_MESSAGES
   uint8_t sd = true; // show date if no message
   for (uint8_t i=0; i<msg_Count; i++) {
     if ((tm_->Month == msg_Dates[i][0]) && (tm_->Day == msg_Dates[i][1])) {
