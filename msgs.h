@@ -27,7 +27,7 @@
 //uint8_t msg_Count = 3;
 
 uint8_t msg_Dates[4][2] = { {3,14}, {1,1}, {1,4}, {12,25} };
-char* msg_Texts[] = {"Happy Birthday William", "Happy Perihelion", "Happy New Year", "Merry Christmas"};
+char* msg_Texts[] = {"Happy Birthday William", "Happy New Year", "Happy Perihelion", "Merry Christmas"};
 uint8_t msg_Count = 4;
 
 #endif
