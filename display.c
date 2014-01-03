@@ -32,7 +32,7 @@ void write_vfd_iv11(uint8_t digit, uint8_t segments);
 void write_vfd_iv1(uint8_t digit, uint8_t dash);
 void write_vfd_iv17(uint8_t digit, uint16_t segments);
 void write_vfd_iv18(uint8_t digit, uint8_t segments);
-void write_vfd_iv22(uint8_t digit, uint8_t segments);
+//void write_vfd_iv22(uint8_t digit, uint8_t segments);
 
 void write_vfd_8bit(uint8_t data);
 void clear_display(void);
@@ -133,11 +133,11 @@ void detect_shield(void)
 			mpx_count = 8;
 			g_has_dots = true;
 			break;
-		case(6):  // IV-22 shield
-			shield = SHIELD_IV22;
-			digits = 4;
-			mpx_limit = 4;
-			break;
+//		case(6):  // IV-22 shield
+//			shield = SHIELD_IV22;
+//			digits = 4;
+//			mpx_limit = 4;
+//			break;
 		case(7):  // IV-18 shield (note: save value as no shield - all bits on)
 			shield = SHIELD_IV18;
 			digits = 8;
@@ -285,9 +285,9 @@ void display_multiplex(void)
 						write_vfd_iv18(8, seg8);
 					}
 					break;
-				case SHIELD_IV22:
-					write_vfd_iv22(multiplex_counter, calculate_segments_7(sData[multiplex_counter+scroll_index]));
-					break;
+//				case SHIELD_IV22:
+//					write_vfd_iv22(multiplex_counter, calculate_segments_7(sData[multiplex_counter+scroll_index]));
+//					break;
 				default:
 					break;
 			}
@@ -324,9 +324,9 @@ void display_multiplex(void)
 						write_vfd_iv18(8, seg8);
 					}
 					break;
-				case SHIELD_IV22:
-					write_vfd_iv22(multiplex_counter, calculate_segments_7(data[multiplex_counter]));
-					break;
+//				case SHIELD_IV22:
+//					write_vfd_iv22(multiplex_counter, calculate_segments_7(data[multiplex_counter]));
+//					break;
 				default:
 					break;
 			}
@@ -1037,23 +1037,23 @@ void write_vfd_iv18(uint8_t digit, uint8_t segments)
 }
 
 
-// Writes to the HV5812 driver for IV-22
-// HV1~4:   Digit grids, 4 bits
-// HV5~6:   NC
-// HV7~14:  VFD segments, 8 bits
-// HV15~20: NC
-void write_vfd_iv22(uint8_t digit, uint8_t segments)
-{
-	uint32_t val = (1 << digit) | ((uint32_t)segments << 6);
-	
-	write_vfd_8bit(0); // unused upper byte: for HV518P only
-	write_vfd_8bit(val >> 16);
-	write_vfd_8bit(val >> 8);
-	write_vfd_8bit(val);
-	
-	LATCH_DISABLE;
-	LATCH_ENABLE;	
-}
+//// Writes to the HV5812 driver for IV-22
+//// HV1~4:   Digit grids, 4 bits
+//// HV5~6:   NC
+//// HV7~14:  VFD segments, 8 bits
+//// HV15~20: NC
+//void write_vfd_iv22(uint8_t digit, uint8_t segments)
+//{
+//	uint32_t val = (1 << digit) | ((uint32_t)segments << 6);
+//	
+//	write_vfd_8bit(0); // unused upper byte: for HV518P only
+//	write_vfd_8bit(val >> 16);
+//	write_vfd_8bit(val >> 8);
+//	write_vfd_8bit(val);
+//	
+//	LATCH_DISABLE;
+//	LATCH_ENABLE;	
+//}
 
 void clear_display(void)
 {
