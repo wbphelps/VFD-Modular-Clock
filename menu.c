@@ -318,7 +318,8 @@ void menu(uint8_t btn)
 			}
 			else {
 				show = true;  // show value
-				if ((digits>6) && !(menuPtr->flags & menu_time))
+//				if ((digits>6) && !(menuPtr->flags & menu_time))
+				if (digits>6)
 					update = true;  // name and value both fit
 			}
 			break;
@@ -326,6 +327,12 @@ void menu(uint8_t btn)
 			menuPtr = nextItem(true);  // next menu items (skip subs)
 			update = false;
 			show = false;
+			if (menuPtr->flags & menu_time) { // time item?
+				if (menuPtr->menuNum == MENU_ALARM)
+					rtc_get_alarm_s(&alarm_hour, &alarm_minute, &alarm_second);
+				if (menuPtr->menuNum == MENU_TIME)
+					rtc_get_time_s(&time_hour, &time_minute, &time_second);
+			}
 			break;
 	}
 	if (menuPtr == NULL) {  // check for end of menu
@@ -408,15 +415,15 @@ void menu(uint8_t btn)
 			else
 				show = true;
 		}
-#ifdef FEATURE_MENU_TIME
-// time menu item
-		else if (menuPtr->flags & menu_time) {
-			if (menuPtr->menuNum == MENU_ALARM)
-				rtc_get_alarm_s(&alarm_hour, &alarm_minute, &alarm_second);
-			if (menuPtr->menuNum == MENU_TIME)
-				rtc_get_time_s(&time_hour, &time_minute, &time_second);
-		}
-#endif
+//#ifdef FEATURE_MENU_TIME
+//// time menu item
+//		else if (menuPtr->flags & menu_time) {
+//			if (menuPtr->menuNum == MENU_ALARM)
+//				rtc_get_alarm_s(&alarm_hour, &alarm_minute, &alarm_second);
+//			if (menuPtr->menuNum == MENU_TIME)
+//				rtc_get_time_s(&time_hour, &time_minute, &time_second);
+//		}
+//#endif
 // top of sub menu item
 		else if (menuPtr->flags & menu_hasSub) {
 			switch (digits) {
