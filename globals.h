@@ -56,7 +56,7 @@ struct __globals
 	int8_t alarmtype;
 	int8_t snooze_enabled;
 #ifdef FEATURE_FLW
-	int8_t flw_enabled
+	int8_t flw_enabled;
 #endif
 #ifdef FEATURE_WmGPS 
 	int8_t gps_enabled;
@@ -100,7 +100,9 @@ int8_t g_gps_time_errors;  // gps time error counter
 uint8_t g_DST_updated;  // DST update flag = allow update only once per day
 #endif
 uint8_t g_has_dots; // can current shield show dot (decimal points)
-
+#ifdef FEATURE_FLW
+uint8_t g_has_eeprom; // does FLW eeprom exist?
+#endif
 void globals_init(void);
 void save_globals(void);
 extern struct __globals globals; // can't put this here...
