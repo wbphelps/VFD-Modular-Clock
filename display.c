@@ -28,6 +28,8 @@
 #endif
 
 void write_vfd_iv6(uint8_t digit, uint8_t segments);
+void write_vfd_iv11(uint8_t digit, uint8_t segments);
+void write_vfd_iv1(uint8_t digit, uint8_t dash);
 void write_vfd_iv17(uint8_t digit, uint16_t segments);
 void write_vfd_iv18(uint8_t digit, uint8_t segments);
 void write_vfd_iv22(uint8_t digit, uint8_t segments);
@@ -124,6 +126,13 @@ void detect_shield(void)
 			digits = 6;
 			mpx_limit = 6;
 			break;
+		case(3): // IV-11 shield
+			shield = SHIELD_IV11;
+			digits = 6;
+			mpx_limit = 6;
+			mpx_count = 8;
+			g_has_dots = true;
+			break;
 		case(6):  // IV-22 shield
 			shield = SHIELD_IV22;
 			digits = 4;
@@ -173,10 +182,10 @@ void display_init(uint8_t brightness)
 	SIGNATURE_PORT |= _BV(SIGNATURE_BIT_1);
 	SIGNATURE_PORT |= _BV(SIGNATURE_BIT_2);
 
-	detect_shield();
-
 	LATCH_ENABLE;
 	clear_display();
+
+	detect_shield();
 
 	// Inititalize Timer0 for PWM on PB2/OC0A (Blank)
 	// fast PWM, fastest clock, set OC0A (blank) on match
@@ -193,6 +202,7 @@ uint16_t _bright=0;
 void set_brightness(uint8_t brightness) {
 	globals.brightness = brightness;  // update global so it stays consistent 16nov12/wbp
   _bright = brightness;
+  save_globals(); // update EE if changed
 	if (_bright > 10) _bright = 10;
 	_bright = (10 - _bright) * 25; // translate to PWM value
 	// Brightness is set by setting the PWM duty cycle for the blank
@@ -258,6 +268,9 @@ void display_multiplex(void)
 				case SHIELD_IV6:
 					write_vfd_iv6(multiplex_counter, calculate_segments_7(sData[multiplex_counter+scroll_index]));
 					break;
+				case SHIELD_IV11:
+					write_vfd_iv11(multiplex_counter, calculate_segments_7(sData[multiplex_counter+scroll_index]));
+					break;
 				case SHIELD_IV17:
 					write_vfd_iv17(multiplex_counter, calculate_segments_16(sData[multiplex_counter+scroll_index]));
 					break;
@@ -282,6 +295,9 @@ void display_multiplex(void)
 			switch (shield) {
 				case SHIELD_IV6:
 					write_vfd_iv6(multiplex_counter, calculate_segments_7(data[multiplex_counter]));
+					break;
+				case SHIELD_IV11:
+					write_vfd_iv11(multiplex_counter, calculate_segments_7(data[multiplex_counter]));
 					break;
 				case SHIELD_IV17:
 //					write_vfd_iv17(multiplex_counter, calculate_segments_16(data[multiplex_counter]));
@@ -953,6 +969,26 @@ void write_vfd_iv6(uint8_t digit, uint8_t segments)
 	
 	uint32_t val = (1 << digit) | ((uint32_t)segments << 6);
 	
+	write_vfd_8bit(0); // unused upper byte: for HV518P only
+	write_vfd_8bit(val >> 16);
+	write_vfd_8bit(val >> 8);
+	write_vfd_8bit(val);
+	
+	LATCH_DISABLE;
+	LATCH_ENABLE;	
+}
+
+// Writes to the HV5812 driver for IV-11
+// HV1~6:   Digit grids, 6 bits
+// HV7~8:   Digit grids for IV-1 decimal points
+// HV9~16:  VFD segments, 8 bits
+// HV17:    IV-1 dash
+// HV18/    IV-1 dot
+// HV19~20: NC
+void write_vfd_iv11(uint8_t digit, uint8_t segments)
+{
+	uint32_t val = (1 << digit) | ((uint32_t)segments << 8);
+
 	write_vfd_8bit(0); // unused upper byte: for HV518P only
 	write_vfd_8bit(val >> 16);
 	write_vfd_8bit(val >> 8);
