@@ -1,6 +1,6 @@
 /*
  * VFD Modular Clock
- * (C) 2011 Akafugu Corporation
+ * (C) 2011-2013 Akafugu Corporation
  *
  * This program is free software; you can redistribute it and/or modify it under the
  * terms of the GNU General Public License as published by the Free Software
@@ -131,6 +131,10 @@ uint8_t calculate_segments_7(uint8_t character)
 		case 'j':
 			segments = (1<<B)|(1<<C)|(1<<D)|(1<<E);
 			break;
+		case 'K':
+		case 'k':
+			segments = (1<<B)|(1<<E)|(1<<F)|(1<<G);
+			break;
 		case 'L':
 			segments = (1<<D)|(1<<E)|(1<<F);
 			break;
@@ -174,6 +178,10 @@ uint8_t calculate_segments_7(uint8_t character)
 		case 'W':
 		case 'w':
 			segments = (1<<A)|(1<<C)|(1<<D)|(1<<E);
+			break;
+		case 'X':
+		case 'x':
+			segments = (1<<A)|(1<<D)|(1<<G);
 			break;
 		case 'Y':
 		case 'y':
