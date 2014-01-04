@@ -15,6 +15,7 @@
 
 /* Updates by William B Phelps
 *todo:
+ * save globals 5 minutes after last change
  * ?
  
  * 01Jan14 globals structure, saved to EE memory 
