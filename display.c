@@ -131,7 +131,7 @@ void detect_shield(void)
 			digits = 6;
 			mpx_limit = 6;
 			mpx_count = 8;
-			g_has_dots = true;
+//			g_has_dots = true;
 			break;
 //		case(6):  // IV-22 shield
 //			shield = SHIELD_IV22;

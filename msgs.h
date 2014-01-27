@@ -16,18 +16,17 @@
 #ifndef MSGS_H_
 #define MSGS_H_
 
-//uint8_t msg_Dates[3][2] = { {2,28}, {1,1}, {12,25} };
-//char* msg_Texts[] = {"Happy Birthday John", "Happy New Year", "Merry Christmas"};
+//#define messages 4
+//uint8_t msg_Dates[messages][2] = { {3,1}, {1,1}, {1,4}, {12,25} };
+//char* msg_Texts[messages] = {"Happy Birthday John", "Happy New Year", "Happy Perihelion", "Merry Christmas"};
 
-//uint8_t msg_Dates[3][2] = { {7,16}, {1,1}, {12,25} };
-//char* msg_Texts[] = {"Happy Birthday Beverly", "Happy New Year", "Merry Christmas"};
+//#define messages 3
+//uint8_t msg_Dates[messages][2] = { {1,14}, {1,1}, {12,25} };
+//char* msg_Texts[messages] = {"Happy Birthday Simone", "Happy New Year", "Merry Christmas"};
 
-//uint8_t msg_Dates[3][2] = { {1,14}, {1,1}, {12,25} };
-//char* msg_Texts[] = {"Happy Birthday Simone", "Happy New Year", "Merry Christmas"};
-//uint8_t msg_Count = 3;
-
-uint8_t msg_Dates[4][2] = { {3,14}, {1,1}, {1,4}, {12,25} };
-char* msg_Texts[] = {"Happy Birthday William", "Happy New Year",  "Happy Perihelion", "Merry Christmas"};
-uint8_t msg_Count = 4;
+#define messages 4 // number of messages
+uint8_t msg_Dates[messages][2] = { {3,14}, {1,1}, {1,4}, {12,25} };
+char* msg_Texts[messages] = {"Happy Birthday William", "Happy New Year",  "Happy Perihelion", "Merry Christmas"};
+uint8_t msg_Count = messages;
 
 #endif

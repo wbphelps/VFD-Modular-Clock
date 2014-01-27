@@ -1,5 +1,5 @@
 # Makefile
-# (C) 2011 Akafugu Coporation
+# (C) 2011-2014 Akafugu Coporation
 #
 # This program is free software; you can redistribute it and/or modify it under the
 # terms of the GNU General Public License as published by the Free Software
@@ -50,7 +50,7 @@ FEATURE_WmGPS ?= YES
 FEATURE_AUTO_DIM ?= YES
 FEATURE_AUTO_DST ?= YES
 FEATURE_MESSAGES ?= YES
-FEATURE_FLW ?= YES
+#FEATURE_FLW ?= YES
 
 ifneq ($(DEFAULT_BRIGHTNESS), )
   CFLAGS += -DDEFAULT_BRIGHTNESS=$(DEFAULT_BRIGHTNESS)
@@ -65,8 +65,8 @@ SPECIAL_DEFS += DEMO \
 	FEATURE_AUTO_DIM \
 	FEATURE_AUTO_DST \
 	FEATURE_MESSAGES \
-	FEATURE_FLW \
 	BOARD_1_0
+#	FEATURE_FLW \
 	  
 
 OBJS = $(SRCS:.c=.o)
